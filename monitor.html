@@ -2,17 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Arc Works Monitor</title>
-<link rel="manifest" href="/functions/v1/monitor-ui/manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="/functions/v1/monitor-ui/icon.svg">
-<link rel="apple-touch-icon" href="/functions/v1/monitor-ui/icon.svg">
-<meta name="theme-color" content="#050508">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ArcMonitor">
-<meta name="format-detection" content="telephone=no">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root{
@@ -126,6 +117,8 @@ th{text-align:left;font-size:11px;color:var(--sub2);font-weight:600;padding:8px 
 td{font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
 tr:hover td{background:rgba(255,255,255,.015)}
 .key{font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:var(--orange);font-weight:500}
+.copy-key-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-left:6px;padding:0;border:none;background:rgba(255,255,255,0.06);border-radius:5px;cursor:pointer;font-size:12px;opacity:0.5;transition:all 0.15s;vertical-align:middle}
+.copy-key-btn:hover{opacity:1;background:rgba(0,122,255,0.2);transform:scale(1.1)}
 .time{color:var(--sub);font-size:12px}
 .status{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
 .s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
@@ -362,13 +355,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
         <div class="create-bar">
           <input id="newOfficeName" placeholder="부동산 이름" style="width:160px"/>
           <span style="font-weight:600;font-size:14px;color:var(--text)">ARC-</span><input id="newKey" placeholder="XXX-0001" style="width:160px"/>
-          <select id="newTier" title="라이선스 등급">
-            <option value="basic">Basic (단일조회)</option>
-            <option value="pro" selected>Pro (+지도검색)</option>
-          </select>
           <select id="newDays">
-            <option value="1">1일</option>
-            <option value="3">3일</option>
             <option value="7">7일</option>
             <option value="14">14일</option>
             <option value="30" selected>30일</option>
@@ -530,7 +517,30 @@ var nameMap = {};
 function keyLabel(k) {
   if (!k) return "-";
   var name = nameMap[k];
-  return name ? "<span style='color:var(--text);font-weight:600'>" + name + "</span> <span class='key' style='opacity:.6;font-size:11px'>" + k + "</span>" : "<span class='key'>" + k + "</span>";
+  var copyBtn = "<button class='copy-key-btn' onclick=\"event.stopPropagation();copyKey('" + k + "',this)\" title='키 복사'>&#x1F4CB;</button>";
+  return name
+    ? "<span style='color:var(--text);font-weight:600'>" + name + "</span> <span class='key' style='opacity:.6;font-size:11px'>" + k + "</span>" + copyBtn
+    : "<span class='key'>" + k + "</span>" + copyBtn;
+}
+function copyKey(k, btn) {
+  navigator.clipboard.writeText(k).then(function() {
+    var orig = btn.innerHTML;
+    btn.innerHTML = "&#x2705;";
+    btn.style.opacity = "1";
+    setTimeout(function(){ btn.innerHTML = orig; btn.style.opacity = ""; }, 1200);
+    showToast("복사됨: " + k);
+  }).catch(function() {
+    // fallback
+    var ta = document.createElement("textarea");
+    ta.value = k;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast("복사됨: " + k);
+  });
 }
 function shortKey(k) { return k || "-" }
 function shortHwid(h) { return h ? h.slice(0, 16) + "..." : "-" }
@@ -599,8 +609,7 @@ function createLicense() {
   var key = rawKey.startsWith("ARC-") ? rawKey : "ARC-" + rawKey;
   var officeName = document.getElementById("newOfficeName").value.trim();
   var sel = document.getElementById("newDays").value;
-  var tier = document.getElementById("newTier").value || "pro";
-  var params = { license_key: key, quota: 100, office_name: officeName || null, tier: tier };
+  var params = { license_key: key, quota: 100, office_name: officeName || null };
   if (sel === "custom") {
     var dateVal = document.getElementById("newDate").value;
     if (!dateVal) { showToast("만료일을 선택하세요", true); return; }
@@ -617,11 +626,6 @@ function setOfficeName(key) {
   var name = prompt("부동산 이름을 입력하세요:", current);
   if (name === null) return;
   adminAction("set_name", { license_key: key, office_name: name });
-}
-function setTier(key, tier) {
-  var label = tier === 'pro' ? 'Pro (지도검색 포함)' : 'Basic (단일조회만)';
-  if (!confirm(key + " 를(을) " + label + " 로 변경할까요?")) return;
-  adminAction("set_tier", { license_key: key, tier: tier });
 }
 
 function createNotice() {
@@ -770,15 +774,9 @@ async function fetchData() {
       else if (!l.is_active) { statusHtml = "<div class='status'><div class='s-dot red'></div>정지</div>"; }
       else { statusHtml = "<div class='status'><div class='s-dot gray'></div>만료</div>"; }
       var k = l.license_key;
-      var tier = l.tier || 'basic';
-      var tierBadge = tier === 'pro'
-        ? "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(255,159,10,0.15);color:#ff9f0a;font-size:11px;font-weight:700;letter-spacing:0.3px'>PRO</span>"
-        : "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(90,100,120,0.2);color:#9aa3b2;font-size:11px;font-weight:700;letter-spacing:0.3px'>BASIC</span>";
       var btns = "<div class='act-btns'>";
       btns += "<button class='act-btn blue' onclick=\"extendLicense('"+k+"')\">연장</button>";
       btns += "<button class='act-btn orange' onclick=\"setQuota('"+k+"')\">쿼터</button>";
-      if (tier === 'pro') btns += "<button class='act-btn' onclick=\"setTier('"+k+"','basic')\">→Basic</button>";
-      else                btns += "<button class='act-btn green' onclick=\"setTier('"+k+"','pro')\">→Pro</button>";
       if (l.is_active) btns += "<button class='act-btn red' onclick=\"suspendLicense('"+k+"')\">정지</button>";
       else btns += "<button class='act-btn green' onclick=\"activateLicense('"+k+"')\">활성화</button>";
       btns += "<button class='act-btn' onclick=\"kickSession('"+k+"')\">세션끊기</button>";
@@ -788,7 +786,7 @@ async function fetchData() {
       var used = d.todayPerUser[k] ? d.todayPerUser[k].count : 0;
       var quota = l.quota_daily || "무제한";
       var quotaText = "<strong>" + used + "</strong> / " + quota;
-      return "<tr><td>" + statusHtml + "</td><td>" + keyLabel(k) + " " + tierBadge + "</td><td class='time'>" + fmtDate(l.expires_at) + "</td><td>" + quotaText + "</td><td>" + btns + "</td></tr>";
+      return "<tr><td>" + statusHtml + "</td><td>" + keyLabel(k) + "</td><td class='time'>" + fmtDate(l.expires_at) + "</td><td>" + quotaText + "</td><td>" + btns + "</td></tr>";
     }).join("");
 
     // Recent logs
