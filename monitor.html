@@ -355,6 +355,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
         <div class="create-bar">
           <input id="newOfficeName" placeholder="부동산 이름" style="width:160px"/>
           <span style="font-weight:600;font-size:14px;color:var(--text)">ARC-</span><input id="newKey" placeholder="XXX-0001" style="width:160px"/>
+          <select id="newTier" title="라이선스 등급">
+            <option value="basic">Basic (단일조회)</option>
+            <option value="pro" selected>Pro (+지도검색)</option>
+          </select>
           <select id="newDays">
             <option value="7">7일</option>
             <option value="14">14일</option>
@@ -603,13 +607,19 @@ function setQuota(key) {
 document.getElementById("newDays").addEventListener("change", function(){
   document.getElementById("newDate").style.display = this.value === "custom" ? "" : "none";
 });
+function setTier(key, tier) {
+  var label = tier === 'pro' ? 'Pro (지도검색 포함)' : 'Basic (단일조회만)';
+  if (!confirm(key + " 를(을) " + label + " 로 변경할까요?")) return;
+  adminAction("set_tier", { license_key: key, tier: tier });
+}
 function createLicense() {
   var rawKey = document.getElementById("newKey").value.trim();
   if (!rawKey) { showToast("라이선스 키를 입력하세요", true); return; }
   var key = rawKey.startsWith("ARC-") ? rawKey : "ARC-" + rawKey;
   var officeName = document.getElementById("newOfficeName").value.trim();
+  var tier = document.getElementById("newTier").value || "pro";
   var sel = document.getElementById("newDays").value;
-  var params = { license_key: key, quota: 100, office_name: officeName || null };
+  var params = { license_key: key, quota: 100, office_name: officeName || null, tier: tier };
   if (sel === "custom") {
     var dateVal = document.getElementById("newDate").value;
     if (!dateVal) { showToast("만료일을 선택하세요", true); return; }
@@ -774,9 +784,15 @@ async function fetchData() {
       else if (!l.is_active) { statusHtml = "<div class='status'><div class='s-dot red'></div>정지</div>"; }
       else { statusHtml = "<div class='status'><div class='s-dot gray'></div>만료</div>"; }
       var k = l.license_key;
+      var tier = l.tier || 'basic';
+      var tierBadge = tier === 'pro'
+        ? "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(255,159,10,0.15);color:#ff9f0a;font-size:11px;font-weight:700;letter-spacing:0.3px;margin-left:6px'>PRO</span>"
+        : "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(90,100,120,0.2);color:#9aa3b2;font-size:11px;font-weight:700;letter-spacing:0.3px;margin-left:6px'>BASIC</span>";
       var btns = "<div class='act-btns'>";
       btns += "<button class='act-btn blue' onclick=\"extendLicense('"+k+"')\">연장</button>";
       btns += "<button class='act-btn orange' onclick=\"setQuota('"+k+"')\">쿼터</button>";
+      if (tier === 'pro') btns += "<button class='act-btn' onclick=\"setTier('"+k+"','basic')\">→Basic</button>";
+      else                btns += "<button class='act-btn green' onclick=\"setTier('"+k+"','pro')\">→Pro</button>";
       if (l.is_active) btns += "<button class='act-btn red' onclick=\"suspendLicense('"+k+"')\">정지</button>";
       else btns += "<button class='act-btn green' onclick=\"activateLicense('"+k+"')\">활성화</button>";
       btns += "<button class='act-btn' onclick=\"kickSession('"+k+"')\">세션끊기</button>";
@@ -786,7 +802,7 @@ async function fetchData() {
       var used = d.todayPerUser[k] ? d.todayPerUser[k].count : 0;
       var quota = l.quota_daily || "무제한";
       var quotaText = "<strong>" + used + "</strong> / " + quota;
-      return "<tr><td>" + statusHtml + "</td><td>" + keyLabel(k) + "</td><td class='time'>" + fmtDate(l.expires_at) + "</td><td>" + quotaText + "</td><td>" + btns + "</td></tr>";
+      return "<tr><td>" + statusHtml + "</td><td>" + keyLabel(k) + tierBadge + "</td><td class='time'>" + fmtDate(l.expires_at) + "</td><td>" + quotaText + "</td><td>" + btns + "</td></tr>";
     }).join("");
 
     // Recent logs
