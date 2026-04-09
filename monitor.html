@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Arc Works Monitor</title>
+<link rel="manifest" href="/functions/v1/monitor-ui/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/functions/v1/monitor-ui/icon.svg">
+<link rel="apple-touch-icon" href="/functions/v1/monitor-ui/icon.svg">
+<meta name="theme-color" content="#050508">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ArcMonitor">
+<meta name="format-detection" content="telephone=no">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+:root{
+  --bg:#050508;--bg2:#0c0c12;--card:#111118;--card2:#16161f;--card3:#1a1a24;
+  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);
+  --text:#f0f0f5;--sub:#6b6b80;--sub2:#4a4a5c;
+  --blue:#3b82f6;--blue2:#2563eb;--blue-bg:rgba(59,130,246,.08);--blue-border:rgba(59,130,246,.2);
+  --green:#22c55e;--green-bg:rgba(34,197,94,.08);--green-border:rgba(34,197,94,.2);
+  --red:#ef4444;--red-bg:rgba(239,68,68,.08);--red-border:rgba(239,68,68,.2);
+  --orange:#f59e0b;--orange-bg:rgba(245,158,11,.08);--orange-border:rgba(245,158,11,.2);
+  --purple:#a855f7;
+  --radius:12px;--radius-lg:16px;--radius-sm:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--sub2);border-radius:3px}
+
+/* ── Login ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,.06) 0%,transparent 60%)}
+.login-box{width:360px;text-align:center}
+.login-logo{width:48px;height:48px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:14px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;letter-spacing:-.02em}
+.login-title{font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px}
+.login-sub{font-size:14px;color:var(--sub);margin-bottom:32px}
+.login-input{width:100%;background:var(--card);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius);padding:14px 18px;font-size:15px;text-align:center;outline:none;transition:border-color .2s;font-family:inherit}
+.login-input:focus{border-color:var(--blue)}
+.login-input::placeholder{color:var(--sub2)}
+.login-btn{width:100%;margin-top:12px;padding:14px;background:var(--blue);border:none;border-radius:var(--radius);font-size:15px;font-weight:600;color:#fff;cursor:pointer;transition:background .15s,transform .1s;font-family:inherit}
+.login-btn:hover{background:var(--blue2)}
+.login-btn:active{transform:scale(.98)}
+.login-err{color:var(--red);font-size:13px;margin-top:12px;display:none}
+
+/* ── Layout ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:0 20px;margin-bottom:28px}
+.sidebar-logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff}
+.sidebar-logo-text{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.sidebar-logo-badge{font-size:10px;color:var(--sub);font-weight:500;margin-left:-4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;transition:all .15s;border-left:2px solid transparent;margin-bottom:2px}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.02)}
+.nav-item.active{color:var(--text);background:rgba(59,130,246,.06);border-left-color:var(--blue)}
+.nav-item svg{width:16px;height:16px;opacity:.5;flex-shrink:0}
+.nav-item.active svg{opacity:1}
+.nav-divider{height:1px;background:var(--border);margin:12px 20px}
+.sidebar-footer{margin-top:auto;padding:16px 20px}
+.sidebar-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.main{flex:1;overflow-y:auto;background:var(--bg)}
+.main-header{padding:24px 32px 0;display:flex;align-items:center;justify-content:space-between}
+.main-title{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.header-controls{display:flex;align-items:center;gap:10px}
+.ctrl-select,.ctrl-btn{background:var(--card);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);padding:7px 12px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:border-color .15s}
+.ctrl-select:hover,.ctrl-btn:hover{border-color:var(--blue)}
+.ctrl-time{font-size:11px;color:var(--sub2);font-weight:500}
+
+.content{padding:24px 32px 40px}
+
+/* ── Stat Cards ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.stat-card.c-blue::before{background:var(--blue)}
+.stat-card.c-green::before{background:var(--green)}
+.stat-card.c-orange::before{background:var(--orange)}
+.stat-card.c-purple::before{background:var(--purple)}
+.stat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:16px}
+.stat-card.c-blue .stat-icon{background:var(--blue-bg);color:var(--blue)}
+.stat-card.c-green .stat-icon{background:var(--green-bg);color:var(--green)}
+.stat-card.c-orange .stat-icon{background:var(--orange-bg);color:var(--orange)}
+.stat-card.c-purple .stat-icon{background:rgba(168,85,247,.08);color:var(--purple)}
+.stat-label{font-size:12px;color:var(--sub);font-weight:500;margin-bottom:6px}
+.stat-val{font-size:32px;font-weight:800;letter-spacing:-.03em;line-height:1}
+
+/* ── Alert Panel ── */
+.alert-panel{margin-bottom:24px}
+.alert-header{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.alert-count{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.alert-count.ok{background:var(--green)}
+.alert-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius);margin-bottom:6px;font-size:13px;backdrop-filter:blur(8px)}
+.alert-item.red{background:var(--red-bg);border:1px solid var(--red-border)}
+.alert-item.orange{background:var(--orange-bg);border:1px solid var(--orange-border)}
+.alert-item.green{background:var(--green-bg);border:1px solid var(--green-border)}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alert-item.red .alert-dot{background:var(--red)}
+.alert-item.orange .alert-dot{background:var(--orange)}
+.alert-item.green .alert-dot{background:var(--green)}
+.alert-body{flex:1;min-width:0}
+.alert-title{font-weight:600;font-size:13px}
+.alert-item.red .alert-title{color:var(--red)}
+.alert-item.orange .alert-title{color:var(--orange)}
+.alert-item.green .alert-title{color:var(--green)}
+.alert-detail{color:var(--sub);font-size:12px;margin-top:1px}
+
+/* ── Sections / Tables ── */
+.section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;transition:border-color .2s}
+.section:hover{border-color:var(--border2)}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;letter-spacing:-.01em}
+.badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.02em}
+.badge-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.badge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.badge-sub{background:rgba(255,255,255,.04);color:var(--sub);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;color:var(--sub2);font-weight:600;padding:8px 14px;border-bottom:1px solid var(--border);letter-spacing:.04em;text-transform:uppercase}
+td{font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:hover td{background:rgba(255,255,255,.015)}
+.key{font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:var(--orange);font-weight:500}
+.time{color:var(--sub);font-size:12px}
+.status{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+.s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.s-dot.green{background:var(--green)}
+.s-dot.red{background:var(--red)}
+.s-dot.gray{background:var(--sub2)}
+.empty-state{text-align:center;padding:24px;color:var(--sub2);font-size:13px}
+
+/* ── Action Buttons ── */
+.act-btns{display:flex;gap:5px;flex-wrap:wrap}
+.act-btn{background:transparent;border:1px solid var(--border2);color:var(--sub);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;font-family:inherit}
+.act-btn:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.act-btn.blue{color:var(--blue);border-color:var(--blue-border)}
+.act-btn.blue:hover{background:var(--blue-bg)}
+.act-btn.green{color:var(--green);border-color:var(--green-border)}
+.act-btn.green:hover{background:var(--green-bg)}
+.act-btn.red{color:var(--red);border-color:var(--red-border)}
+.act-btn.red:hover{background:var(--red-bg)}
+.act-btn.orange{color:var(--orange);border-color:var(--orange-border)}
+.act-btn.orange:hover{background:var(--orange-bg)}
+
+/* ── Create License Bar ── */
+.create-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:14px 16px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px}
+.create-bar input,.create-bar select{background:var(--card3);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;font-family:inherit;outline:none;transition:border-color .2s}
+.create-bar input:focus,.create-bar select:focus{border-color:var(--blue)}
+.create-bar input::placeholder{color:var(--sub2)}
+.create-bar .create-btn{background:var(--green);border:none;color:#fff;border-radius:var(--radius-sm);padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.create-bar .create-btn:hover{opacity:.85}
+
+/* ── Collapsible ── */
+.collapse-head{cursor:pointer;user-select:none}
+.collapse-arrow{font-size:12px;color:var(--sub);transition:transform .2s;display:inline-block}
+.collapse-arrow.open{transform:rotate(90deg)}
+
+/* ── Toast ── */
+.toast{position:fixed;top:20px;right:20px;background:var(--card2);border:1px solid var(--green-border);color:var(--green);padding:12px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;backdrop-filter:blur(12px)}
+.toast.show{opacity:1}
+.toast.err{border-color:var(--red-border);color:var(--red)}
+
+/* ── Notice Cards ── */
+.notice-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;transition:border-color .2s}
+.notice-card:hover{border-color:var(--border2)}
+.notice-card.inactive{opacity:.45}
+.notice-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.notice-card-title{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.notice-card-status{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px}
+.notice-card-status.on{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.notice-card-status.off{background:rgba(255,255,255,.04);color:var(--sub);border:1px solid var(--border)}
+.notice-card-body{font-size:13px;color:var(--sub);line-height:1.6;white-space:pre-wrap;margin-bottom:10px}
+.notice-card-footer{display:flex;align-items:center;justify-content:space-between}
+.notice-card-time{font-size:11px;color:var(--sub2)}
+.notice-card-actions{display:flex;gap:5px}
+
+/* ── Mobile Nav ── */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:100;padding:6px 0 env(safe-area-inset-bottom,6px)}
+.mobile-nav-inner{display:flex;justify-content:space-around;align-items:center}
+.mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:10px;color:var(--sub);cursor:pointer;flex:1;transition:color .15s}
+.mobile-nav-item.active{color:var(--blue)}
+.mobile-nav-item svg{width:20px;height:20px}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .mobile-nav{display:block}
+  .layout{flex-direction:column;padding-bottom:72px}
+  .main{min-height:calc(100vh - 72px)}
+  .stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat-card{padding:14px}
+  .stat-val{font-size:24px}
+  .stat-icon{width:28px;height:28px;margin-bottom:10px;font-size:13px}
+  .content{padding:16px 12px 24px}
+  .main-header{padding:14px 12px 0}
+  .main-title{font-size:17px}
+  .section{padding:14px;border-radius:var(--radius)}
+  .section-title{font-size:13px}
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
+  th{font-size:10px;padding:6px 10px}
+  td{font-size:12px;padding:8px 10px}
+  .act-btns{gap:4px}
+  .act-btn{padding:4px 8px;font-size:10px}
+  .create-bar{flex-direction:column;gap:8px;padding:12px}
+  .create-bar input,.create-bar select{width:100%!important}
+  .create-bar .create-btn{width:100%}
+  .alert-item{padding:10px 12px;font-size:12px}
+  .alert-title{font-size:12px}
+  .alert-detail{font-size:11px}
+  .notice-card{padding:12px}
+  .notice-card-title{font-size:13px}
+  .notice-card-body{font-size:12px}
+  .header-controls{gap:6px}
+  .ctrl-select,.ctrl-btn{padding:6px 10px;font-size:11px}
+  .login-box{width:90%;padding:0 16px}
+  .login-title{font-size:20px}
+  .login-input{padding:12px 14px;font-size:14px}
+  .login-btn{padding:12px;font-size:14px}
+  .toast{top:auto;bottom:80px;left:12px;right:12px;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Login ── -->
+<div id="loginScreen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">A</div>
+    <div class="login-title">Arc Works Monitor</div>
+    <div class="login-sub">관리자 인증이 필요합니다</div>
+    <input id="passInput" type="password" class="login-input" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">접속</button>
+    <div id="loginErr" class="login-err">비밀번호가 틀렸습니다</div>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div id="mainScreen" class="layout" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">A</div>
+      <div>
+        <div class="sidebar-logo-text">Arc Works</div>
+        <div class="sidebar-logo-badge">Monitor v1</div>
+      </div>
+    </div>
+
+    <div class="nav-item active" data-nav="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      대시보드
+    </div>
+    <div class="nav-item" data-nav="licenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+      라이선스 관리
+    </div>
+    <div class="nav-item" data-nav="logs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+      조회 로그
+    </div>
+    <div class="nav-item" data-nav="notices">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      공지사항 관리
+    </div>
+    <div class="nav-item" data-nav="versions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6l3-3"/><path d="M12 2v6l-3-3"/><path d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+      업데이트 이력
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-status">
+        <div class="live-dot" id="liveDot"></div>
+        <span id="updated">연결 중...</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Content Area -->
+  <main class="main">
+    <div class="main-header">
+      <div class="main-title" id="pageTitle">대시보드</div>
+      <div class="header-controls">
+        <select id="interval" class="ctrl-select">
+          <option value="5" selected>5초</option>
+          <option value="10">10초 간격</option>
+          <option value="30">30초</option>
+          <option value="60">60초</option>
+        </select>
+        <button class="ctrl-btn" onclick="fetchData()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- PAGE: Dashboard -->
+      <div id="pageDashboard">
+        <div class="stats">
+          <div class="stat-card c-blue">
+            <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
+            <div class="stat-label">오늘 총 조회</div>
+            <div class="stat-val" id="sTotal">-</div>
+          </div>
+          <div class="stat-card c-green">
+            <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+            <div class="stat-label">활성 세션</div>
+            <div class="stat-val" id="sSessions">-</div>
+          </div>
+          <div class="stat-card c-orange">
+            <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></div>
+            <div class="stat-label">등록 라이선스</div>
+            <div class="stat-val" id="sLicenses">-</div>
+          </div>
+          <div class="stat-card c-purple">
+            <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <div class="stat-label">오늘 활성 사용자</div>
+            <div class="stat-val" id="sUsers">-</div>
+          </div>
+        </div>
+
+        <div class="alert-panel" id="alertPanel"></div>
+
+        <div class="section" id="healthPanel" style="margin-bottom:16px">
+          <div class="section-head"><div class="section-title">시스템 헬스체크</div></div>
+          <div class="empty-state">로딩 중...</div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">회원별 오늘 사용량</div>
+          </div>
+          <table>
+            <thead><tr><th>라이선스 키</th><th>조회수</th><th>첫 조회</th><th>마지막 조회</th></tr></thead>
+            <tbody id="tUsers"></tbody>
+          </table>
+          <div class="empty-state" id="eUsers" style="display:none">오늘 조회 기록 없음</div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">활성 세션</div>
+          </div>
+          <table>
+            <thead><tr><th>라이선스 키</th><th>HWID</th><th>접속 시간</th><th>만료</th></tr></thead>
+            <tbody id="tSessions"></tbody>
+          </table>
+          <div class="empty-state" id="eSessions" style="display:none">활성 세션 없음</div>
+        </div>
+      </div>
+
+      <!-- PAGE: Licenses -->
+      <div id="pageLicenses" style="display:none">
+        <div class="create-bar">
+          <input id="newOfficeName" placeholder="부동산 이름" style="width:160px"/>
+          <span style="font-weight:600;font-size:14px;color:var(--text)">ARC-</span><input id="newKey" placeholder="XXX-0001" style="width:160px"/>
+          <select id="newTier" title="라이선스 등급">
+            <option value="basic">Basic (단일조회)</option>
+            <option value="pro" selected>Pro (+지도검색)</option>
+          </select>
+          <select id="newDays">
+            <option value="7">7일</option>
+            <option value="14">14일</option>
+            <option value="30" selected>30일</option>
+            <option value="90">90일</option>
+            <option value="365">365일</option>
+            <option value="custom">직접입력</option>
+          </select>
+          <input id="newDate" type="date" style="display:none"/>
+          <button class="create-btn" onclick="createLicense()">+ 신규 발급</button>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">라이선스 현황</div>
+          </div>
+          <table>
+            <thead><tr><th>상태</th><th>라이선스 키</th><th>만료일</th><th>오늘 사용량</th><th>관리</th></tr></thead>
+            <tbody id="tLicenses"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PAGE: Logs -->
+      <div id="pageLogs" style="display:none">
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">최근 조회 로그 <span class="badge badge-sub">최신 30건</span></div>
+          </div>
+          <table>
+            <thead><tr><th>라이선스 키</th><th>매물번호</th><th>조회 시간</th></tr></thead>
+            <tbody id="tLogs"></tbody>
+          </table>
+          <div class="empty-state" id="eLogs" style="display:none">조회 기록 없음</div>
+        </div>
+      </div>
+
+      <!-- PAGE: Versions -->
+      <div id="pageVersions" style="display:none">
+        <div class="create-bar">
+          <input id="newVersion" placeholder="버전 (예: 1.0.2)" style="width:140px"/>
+          <input id="newReleaseNotes" placeholder="변경사항 메모" style="width:300px;flex:1"/>
+          <button class="create-btn" onclick="registerVersion()" style="background:var(--blue)">새 버전 등록</button>
+        </div>
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">업데이트 이력</div>
+          </div>
+          <table>
+            <thead><tr><th>상태</th><th>버전</th><th>배포일</th><th>변경사항</th><th>관리</th></tr></thead>
+            <tbody id="tVersions"></tbody>
+          </table>
+          <div class="empty-state" id="eVersions" style="display:none">등록된 버전이 없습니다</div>
+        </div>
+      </div>
+
+      <!-- PAGE: Notices -->
+      <div id="pageNotices" style="display:none">
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">공지 목록</div>
+            <div id="noticeActiveCount" style="font-size:12px;color:var(--sub)"></div>
+          </div>
+          <div id="noticeList"></div>
+          <div class="empty-state" id="eNotices" style="display:none">등록된 공지가 없습니다</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Mobile Nav -->
+<nav class="mobile-nav" id="mobileNav" style="display:none">
+  <div class="mobile-nav-inner">
+    <div class="mobile-nav-item active" data-nav="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>대시보드</span>
+    </div>
+    <div class="mobile-nav-item" data-nav="licenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+      <span>라이선스</span>
+    </div>
+    <div class="mobile-nav-item" data-nav="logs">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+      <span>로그</span>
+    </div>
+    <div class="mobile-nav-item" data-nav="notices">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>공지</span>
+    </div>
+    <div class="mobile-nav-item" data-nav="versions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6l3-3"/><path d="M12 2v6l-3-3"/><circle cx="12" cy="14" r="8"/></svg>
+      <span>버전</span>
+    </div>
+  </div>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://xxkaedtksqgkfppwiyeu.supabase.co";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4a2FlZHRrc3Fna2ZwcHdpeWV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDEzOTksImV4cCI6MjA5MDAxNzM5OX0.-r8wpYcUEUe8Sj1MvNAHOyzU27xx_iyq13NvlsbRC1s";
+
+let timer = null;
+let PASS = "";
+
+// ── Navigation ──
+function navigateTo(page){
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active') });
+  document.querySelectorAll('.mobile-nav-item').forEach(function(n){ n.classList.remove('active') });
+  document.querySelectorAll('.nav-item[data-nav="'+page+'"]').forEach(function(n){ n.classList.add('active') });
+  document.querySelectorAll('.mobile-nav-item[data-nav="'+page+'"]').forEach(function(n){ n.classList.add('active') });
+  document.getElementById('pageDashboard').style.display = page === 'dashboard' ? '' : 'none';
+  document.getElementById('pageLicenses').style.display = page === 'licenses' ? '' : 'none';
+  document.getElementById('pageLogs').style.display = page === 'logs' ? '' : 'none';
+  document.getElementById('pageNotices').style.display = page === 'notices' ? '' : 'none';
+  document.getElementById('pageVersions').style.display = page === 'versions' ? '' : 'none';
+  var titles = { dashboard: '대시보드', licenses: '라이선스 관리', logs: '조회 로그', notices: '공지사항 관리', versions: '업데이트 이력' };
+  document.getElementById('pageTitle').textContent = titles[page] || '';
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.nav-item[data-nav]').forEach(function(item){
+  item.addEventListener('click', function(){ navigateTo(item.dataset.nav) });
+});
+document.querySelectorAll('.mobile-nav-item[data-nav]').forEach(function(item){
+  item.addEventListener('click', function(){ navigateTo(item.dataset.nav) });
+});
+
+// ── Login ──
+var loginBusy = false;
+function doLogin() {
+  if (loginBusy) return;
+  loginBusy = true;
+  var btn = document.querySelector(".login-btn");
+  btn.textContent = "접속 중...";
+  btn.style.opacity = "0.6";
+  document.getElementById("loginErr").style.display = "none";
+  PASS = document.getElementById("passInput").value;
+  fetch(SUPABASE_URL + "/functions/v1/monitor", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + ANON_KEY, "Content-Type": "application/json", "x-monitor-pass": PASS },
+    body: JSON.stringify({})
+  }).then(function(r){ return r.json() }).then(function(d){
+    if (d.error === "WRONG_PASS") {
+      document.getElementById("loginErr").style.display = "";
+      PASS = "";
+    } else {
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("mainScreen").style.display = "flex";
+      document.getElementById("mobileNav").style.display = "";
+      fetchData();
+      startTimer();
+    }
+  }).catch(function(){ document.getElementById("loginErr").style.display = ""; PASS = ""; })
+  .finally(function(){ loginBusy = false; btn.textContent = "접속"; btn.style.opacity = "1"; });
+}
+
+// ── Helpers ──
+var nameMap = {};
+function keyLabel(k) {
+  if (!k) return "-";
+  var name = nameMap[k];
+  return name ? "<span style='color:var(--text);font-weight:600'>" + name + "</span> <span class='key' style='opacity:.6;font-size:11px'>" + k + "</span>" : "<span class='key'>" + k + "</span>";
+}
+function shortKey(k) { return k || "-" }
+function shortHwid(h) { return h ? h.slice(0, 16) + "..." : "-" }
+function fmtTime(iso) {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleString("ko-KR", { hour12: false, month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit" });
+}
+function fmtDate(iso) {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleDateString("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit" });
+}
+
+function showToast(msg, isErr) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (isErr ? " err" : "");
+  setTimeout(function(){ t.className = "toast"; }, 2500);
+}
+
+async function adminAction(action, data) {
+  try {
+    var res = await fetch(SUPABASE_URL + "/functions/v1/monitor", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + ANON_KEY, "Content-Type": "application/json", "x-monitor-pass": PASS },
+      body: JSON.stringify(Object.assign({ action: action }, data))
+    });
+    var d = await res.json();
+    if (d.ok) { showToast("완료: " + action); fetchData(); }
+    else showToast("실패: " + (d.error || ""), true);
+  } catch(e) { showToast("오류: " + e, true); }
+}
+
+function extendLicense(key) {
+  var days = prompt("연장할 일수를 입력하세요:", "30");
+  if (!days) return;
+  adminAction("extend", { license_key: key, days: parseInt(days) });
+}
+function suspendLicense(key) {
+  if (!confirm(key + " 정지할까요?")) return;
+  adminAction("suspend", { license_key: key });
+}
+function activateLicense(key) {
+  adminAction("activate", { license_key: key });
+}
+function kickSession(key) {
+  if (!confirm(key + " 세션을 강제 종료할까요?")) return;
+  adminAction("kick", { license_key: key });
+}
+function deleteLicense(key) {
+  if (!confirm(key + " 라이선스를 완전히 삭제할까요?\n세션, 조회로그 등 모든 관련 데이터가 삭제됩니다.")) return;
+  if (!confirm("정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) return;
+  adminAction("delete_license", { license_key: key });
+}
+function setQuota(key) {
+  var q = prompt("일일 쿼터를 입력하세요:", "100");
+  if (!q) return;
+  adminAction("set_quota", { license_key: key, quota: parseInt(q) });
+}
+
+document.getElementById("newDays").addEventListener("change", function(){
+  document.getElementById("newDate").style.display = this.value === "custom" ? "" : "none";
+});
+function createLicense() {
+  var rawKey = document.getElementById("newKey").value.trim();
+  if (!rawKey) { showToast("라이선스 키를 입력하세요", true); return; }
+  var key = rawKey.startsWith("ARC-") ? rawKey : "ARC-" + rawKey;
+  var officeName = document.getElementById("newOfficeName").value.trim();
+  var sel = document.getElementById("newDays").value;
+  var tier = document.getElementById("newTier").value || "pro";
+  var params = { license_key: key, quota: 100, office_name: officeName || null, tier: tier };
+  if (sel === "custom") {
+    var dateVal = document.getElementById("newDate").value;
+    if (!dateVal) { showToast("만료일을 선택하세요", true); return; }
+    params.expires_at = dateVal + "T23:59:59Z";
+  } else {
+    params.days = parseInt(sel);
+  }
+  adminAction("create_license", params);
+  document.getElementById("newKey").value = "";
+  document.getElementById("newOfficeName").value = "";
+}
+function setOfficeName(key) {
+  var current = nameMap[key] || "";
+  var name = prompt("부동산 이름을 입력하세요:", current);
+  if (name === null) return;
+  adminAction("set_name", { license_key: key, office_name: name });
+}
+function setTier(key, tier) {
+  var label = tier === 'pro' ? 'Pro (지도검색 포함)' : 'Basic (단일조회만)';
+  if (!confirm(key + " 를(을) " + label + " 로 변경할까요?")) return;
+  adminAction("set_tier", { license_key: key, tier: tier });
+}
+
+function createNotice() {
+  var title = document.getElementById("noticeTitle").value.trim();
+  var message = document.getElementById("noticeMessage").value.trim();
+  if (!title) { showToast("제목을 입력하세요", true); return; }
+  if (!message) { showToast("내용을 입력하세요", true); return; }
+  adminAction("create_notice", { title: title, message: message });
+  document.getElementById("noticeTitle").value = "";
+  document.getElementById("noticeMessage").value = "";
+}
+function toggleNotice(id, currentActive) {
+  adminAction("update_notice", { id: String(id), is_active: !currentActive });
+}
+function deleteNotice(id) {
+  if (!confirm("이 공지를 삭제할까요?")) return;
+  adminAction("delete_notice", { id: String(id) });
+}
+var _notices = {};
+function editNotice(id) {
+  var n = _notices[id];
+  if (!n) return;
+  var card = document.getElementById("nc-" + id);
+  if (!card) return;
+  card.innerHTML = "<div style='display:flex;flex-direction:column;gap:8px'>" +
+    "<input id='ne-title-" + id + "' value='" + (n.title||'').replace(/'/g,"&#39;") + "' style='background:var(--card3);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);padding:8px 12px;font-size:14px;font-weight:700;font-family:inherit;outline:none'/>" +
+    "<textarea id='ne-msg-" + id + "' rows='4' style='background:var(--card3);border:1px solid var(--border2);color:var(--text);border-radius:var(--radius-sm);padding:8px 12px;font-size:13px;font-family:inherit;outline:none;resize:vertical;line-height:1.6'>" + (n.message||'') + "</textarea>" +
+    "<div style='display:flex;gap:6px;justify-content:flex-end'>" +
+    "<button class='act-btn green' onclick='saveNotice(\"" + id + "\")'>저장</button>" +
+    "<button class='act-btn' onclick='fetchData()'>취소</button>" +
+    "</div></div>";
+  document.getElementById("ne-title-" + id).focus();
+}
+function saveNotice(id) {
+  var title = document.getElementById("ne-title-" + id).value.trim();
+  var message = document.getElementById("ne-msg-" + id).value.trim();
+  if (!title) { showToast("제목을 입력하세요", true); return; }
+  adminAction("update_notice", { id: id, title: title, message: message });
+}
+
+// ── Version Management ──
+function toggleVersion(version, currentAllowed) {
+  adminAction("update_version", { version: version, is_allowed: !currentAllowed });
+}
+function editReleaseNotes(version, currentNotes) {
+  var notes = prompt("변경사항:", currentNotes || "");
+  if (notes === null) return;
+  adminAction("update_version", { version: version, release_notes: notes });
+}
+function registerVersion() {
+  var ver = document.getElementById("newVersion").value.trim();
+  if (!ver) { showToast("버전을 입력하세요", true); return; }
+  if (!confirm("v" + ver + " 을 등록할까요?")) return;
+  var notes = document.getElementById("newReleaseNotes").value.trim();
+  adminAction("register_version", { version: ver, release_notes: notes });
+  document.getElementById("newVersion").value = "";
+  document.getElementById("newReleaseNotes").value = "";
+}
+
+// ── Fetch & Render ──
+async function fetchData() {
+  try {
+    document.getElementById("liveDot").style.background = "var(--blue)";
+    var res = await fetch(SUPABASE_URL + "/functions/v1/monitor", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + ANON_KEY, "Content-Type": "application/json", "x-monitor-pass": PASS },
+      body: JSON.stringify({})
+    });
+    var d = await res.json();
+    if (!d.ok) { console.error(d); return; }
+
+    // Stats
+    document.getElementById("sTotal").textContent = d.todayTotal;
+    document.getElementById("sSessions").textContent = d.activeSessions.length;
+    document.getElementById("sLicenses").textContent = d.licenses.length;
+    document.getElementById("sUsers").textContent = Object.keys(d.todayPerUser).length;
+
+    // Build name map
+    nameMap = {};
+    d.licenses.forEach(function(l){ if (l.office_name) nameMap[l.license_key] = l.office_name; });
+
+    // Alerts (실제 헬스체크 기반)
+    var ap = document.getElementById("alertPanel");
+    var alertHtml = '';
+    if (d.alerts && d.alerts.length > 0) {
+      alertHtml += '<div class="alert-header">리스크 경고 <span class="alert-count">' + d.alerts.length + '</span></div>' +
+        d.alerts.map(function(a) {
+          return '<div class="alert-item ' + a.level + '"><div class="alert-dot"></div><div class="alert-body"><div class="alert-title">' + a.title + '</div><div class="alert-detail">' + a.detail + '</div></div></div>';
+        }).join("");
+    } else {
+      alertHtml += '<div class="alert-item green"><div class="alert-dot"></div><div class="alert-body"><div class="alert-title">시스템 정상</div><div class="alert-detail">모든 서비스가 정상 동작 중입니다</div></div></div>';
+    }
+    ap.innerHTML = alertHtml;
+
+    // Health Check 결과 표시
+    var hp = document.getElementById("healthPanel");
+    if (d.health && hp) {
+      var okCount = d.health.filter(function(h){ return h.status === 'ok' }).length;
+      var errCount = d.health.filter(function(h){ return h.status === 'error' }).length;
+      var warnCount = d.health.filter(function(h){ return h.status === 'warn' }).length;
+      var totalCount = d.health.length;
+      var summaryClass = errCount > 0 ? 'badge-red' : (warnCount > 0 ? 'badge-sub' : 'badge-green');
+      var summaryText = errCount > 0 ? (errCount + '건 장애') : (warnCount > 0 ? (warnCount + '건 지연') : '전체 정상');
+      var isOpen = hp.dataset.open === '1';
+      hp.innerHTML = '<div class="section-head collapse-head" onclick="toggleHealth()" style="cursor:pointer"><div class="section-title">시스템 헬스체크 <span class="badge ' + summaryClass + '">' + okCount + '/' + totalCount + ' ' + summaryText + '</span></div><span class="collapse-arrow' + (isOpen ? ' open' : '') + '" id="healthArrow">▶</span></div>' +
+        '<div id="healthBody" style="display:' + (isOpen ? '' : 'none') + '">' +
+        '<table><thead><tr><th>서비스</th><th>상태</th><th>응답시간</th><th>상세</th></tr></thead><tbody>' +
+        d.health.map(function(h) {
+          var statusDot = h.status === 'ok' ? 'green' : (h.status === 'warn' ? 'gray' : 'red');
+          var statusText = h.status === 'ok' ? '정상' : (h.status === 'warn' ? '지연' : '장애');
+          var latencyColor = h.latency > 5000 ? 'var(--red)' : (h.latency > 2000 ? 'var(--orange)' : 'var(--green)');
+          return '<tr><td style="font-weight:600">' + h.name + '</td><td><div class="status"><div class="s-dot ' + statusDot + '"></div>' + statusText + '</div></td><td style="color:' + latencyColor + ';font-weight:600;font-size:12px">' + h.latency + 'ms</td><td style="font-size:12px;color:var(--sub)">' + h.detail + '</td></tr>';
+        }).join("") +
+        '</tbody></table></div>';
+    }
+
+    // Per user today
+    var uKeys = Object.keys(d.todayPerUser);
+    if (uKeys.length === 0) {
+      document.getElementById("tUsers").innerHTML = "";
+      document.getElementById("eUsers").style.display = "";
+    } else {
+      document.getElementById("eUsers").style.display = "none";
+      document.getElementById("tUsers").innerHTML = uKeys.map(function(k) {
+        var u = d.todayPerUser[k];
+        return "<tr><td>" + keyLabel(k) + "</td><td><strong>" + u.count + "</strong> 건</td><td class='time'>" + fmtTime(u.first) + "</td><td class='time'>" + fmtTime(u.last) + "</td></tr>";
+      }).join("");
+    }
+
+    // Sessions
+    if (d.activeSessions.length === 0) {
+      document.getElementById("tSessions").innerHTML = "";
+      document.getElementById("eSessions").style.display = "";
+    } else {
+      document.getElementById("eSessions").style.display = "none";
+      document.getElementById("tSessions").innerHTML = d.activeSessions.map(function(s) {
+        return "<tr><td>" + keyLabel(s.license_key) + "</td><td style='font-family:monospace;font-size:11px;color:var(--sub)'>" + shortHwid(s.hwid) + "</td><td class='time'>" + fmtTime(s.created_at) + "</td><td class='time'>" + fmtTime(s.expires_at) + "</td></tr>";
+      }).join("");
+    }
+
+    // Licenses
+    document.getElementById("tLicenses").innerHTML = d.licenses.map(function(l) {
+      var expired = new Date(l.expires_at) < new Date();
+      var statusHtml, badgeClass;
+      if (l.is_active && !expired) { statusHtml = "<div class='status'><div class='s-dot green'></div>활성</div>"; }
+      else if (!l.is_active) { statusHtml = "<div class='status'><div class='s-dot red'></div>정지</div>"; }
+      else { statusHtml = "<div class='status'><div class='s-dot gray'></div>만료</div>"; }
+      var k = l.license_key;
+      var tier = l.tier || 'basic';
+      var tierBadge = tier === 'pro'
+        ? "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(255,159,10,0.15);color:#ff9f0a;font-size:11px;font-weight:700;letter-spacing:0.3px'>PRO</span>"
+        : "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(90,100,120,0.2);color:#9aa3b2;font-size:11px;font-weight:700;letter-spacing:0.3px'>BASIC</span>";
+      var btns = "<div class='act-btns'>";
+      btns += "<button class='act-btn blue' onclick=\"extendLicense('"+k+"')\">연장</button>";
+      btns += "<button class='act-btn orange' onclick=\"setQuota('"+k+"')\">쿼터</button>";
+      if (tier === 'pro') btns += "<button class='act-btn' onclick=\"setTier('"+k+"','basic')\">→Basic</button>";
+      else                btns += "<button class='act-btn green' onclick=\"setTier('"+k+"','pro')\">→Pro</button>";
+      if (l.is_active) btns += "<button class='act-btn red' onclick=\"suspendLicense('"+k+"')\">정지</button>";
+      else btns += "<button class='act-btn green' onclick=\"activateLicense('"+k+"')\">활성화</button>";
+      btns += "<button class='act-btn' onclick=\"kickSession('"+k+"')\">세션끊기</button>";
+      btns += "<button class='act-btn' onclick=\"setOfficeName('"+k+"')\">부동산</button>";
+      btns += "<button class='act-btn red' onclick=\"deleteLicense('"+k+"')\">삭제</button>";
+      btns += "</div>";
+      var used = d.todayPerUser[k] ? d.todayPerUser[k].count : 0;
+      var quota = l.quota_daily || "무제한";
+      var quotaText = "<strong>" + used + "</strong> / " + quota;
+      return "<tr><td>" + statusHtml + "</td><td>" + keyLabel(k) + " " + tierBadge + "</td><td class='time'>" + fmtDate(l.expires_at) + "</td><td>" + quotaText + "</td><td>" + btns + "</td></tr>";
+    }).join("");
+
+    // Recent logs
+    if (d.recentLogs.length === 0) {
+      document.getElementById("tLogs").innerHTML = "";
+      document.getElementById("eLogs").style.display = "";
+    } else {
+      document.getElementById("eLogs").style.display = "none";
+      document.getElementById("tLogs").innerHTML = d.recentLogs.map(function(l) {
+        return "<tr><td>" + keyLabel(l.license_key) + "</td><td>" + (l.article_no || "-") + "</td><td class='time'>" + fmtTime(l.queried_at) + "</td></tr>";
+      }).join("");
+    }
+
+    // Notices
+    var nl = document.getElementById("noticeList");
+    var en = document.getElementById("eNotices");
+    _notices = {};
+    if (!d.notices || d.notices.length === 0) {
+      nl.innerHTML = ""; en.style.display = "";
+    } else {
+      en.style.display = "none";
+      var activeCount = d.notices.filter(function(n){ return n.is_active }).length;
+      document.getElementById("noticeActiveCount").textContent = "활성 " + activeCount + "건";
+      d.notices.forEach(function(n){ _notices[n.id] = n; });
+      nl.innerHTML = d.notices.map(function(n) {
+        var cls = n.is_active ? "" : " inactive";
+        var statusBadge = n.is_active ? "<span class='notice-card-status on'>게시중</span>" : "<span class='notice-card-status off'>비활성</span>";
+        return "<div class='notice-card" + cls + "' id='nc-" + n.id + "'>" +
+          "<div class='notice-card-head'><div class='notice-card-title'>" + n.title + "</div>" + statusBadge + "</div>" +
+          "<div class='notice-card-body'>" + n.message + "</div>" +
+          "<div class='notice-card-footer'><div class='notice-card-time'>" + fmtTime(n.created_at) + "</div>" +
+          "<div class='notice-card-actions'>" +
+          "<button class='act-btn blue' onclick='editNotice(\"" + n.id + "\")'>수정</button>" +
+          "<button class='act-btn " + (n.is_active ? "orange" : "green") + "' onclick='toggleNotice(\"" + n.id + "\"," + n.is_active + ")'>" + (n.is_active ? "비활성" : "게시") + "</button>" +
+          "<button class='act-btn red' onclick='deleteNotice(\"" + n.id + "\")'>삭제</button>" +
+          "</div></div></div>";
+      }).join("");
+    }
+
+    // Versions
+    var tv = document.getElementById("tVersions");
+    var ev = document.getElementById("eVersions");
+    if (!d.versions || d.versions.length === 0) {
+      tv.innerHTML = ""; ev.style.display = "";
+    } else {
+      ev.style.display = "none";
+      tv.innerHTML = d.versions.map(function(v) {
+        var statusHtml = v.is_allowed
+          ? "<div class='status'><div class='s-dot green'></div>허용</div>"
+          : "<div class='status'><div class='s-dot red'></div>차단</div>";
+        var notes = (v.release_notes || "-").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        var btns = "<div class='act-btns'>";
+        btns += "<button class='act-btn " + (v.is_allowed ? "red" : "green") + "' onclick=\"toggleVersion('" + v.version + "'," + v.is_allowed + ")\">" + (v.is_allowed ? "차단" : "허용") + "</button>";
+        btns += "<button class='act-btn blue' onclick=\"editReleaseNotes('" + v.version + "','" + notes + "')\">메모</button>";
+        btns += "</div>";
+        return "<tr><td>" + statusHtml + "</td><td><strong>v" + v.version + "</strong></td><td class='time'>" + fmtDate(v.released_at) + "</td><td style='font-size:12px;color:var(--sub);max-width:300px'>" + (v.release_notes || "<span style='color:var(--sub2)'>-</span>") + "</td><td>" + btns + "</td></tr>";
+      }).join("");
+    }
+
+    document.getElementById("updated").textContent = new Date().toLocaleTimeString("ko-KR", { hour12: false }) + " 업데이트";
+    setTimeout(function(){ document.getElementById("liveDot").style.background = "var(--green)"; }, 300);
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById("liveDot").style.background = "var(--red)";
+  }
+}
+
+function toggleHealth() {
+  var hp = document.getElementById("healthPanel");
+  var body = document.getElementById("healthBody");
+  var arrow = document.getElementById("healthArrow");
+  if (!body) return;
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  arrow.classList.toggle('open', !open);
+  hp.dataset.open = open ? '0' : '1';
+}
+
+function startTimer() {
+  if (timer) clearInterval(timer);
+  var sec = parseInt(document.getElementById("interval").value) * 1000;
+  timer = setInterval(fetchData, sec);
+}
+
+document.getElementById("interval").addEventListener("change", startTimer);
+</script>
+</body>
+</html>
