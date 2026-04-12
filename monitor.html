@@ -2,8 +2,17 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Arc Works Monitor</title>
+<link rel="manifest" href="/functions/v1/monitor-ui/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/functions/v1/monitor-ui/icon.svg">
+<link rel="apple-touch-icon" href="/functions/v1/monitor-ui/icon.svg">
+<meta name="theme-color" content="#050508">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ArcMonitor">
+<meta name="format-detection" content="telephone=no">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root{
@@ -117,8 +126,6 @@ th{text-align:left;font-size:11px;color:var(--sub2);font-weight:600;padding:8px 
 td{font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
 tr:hover td{background:rgba(255,255,255,.015)}
 .key{font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:var(--orange);font-weight:500}
-.copy-key-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin-left:6px;padding:0;border:none;background:rgba(255,255,255,0.06);border-radius:5px;cursor:pointer;font-size:12px;opacity:0.5;transition:all 0.15s;vertical-align:middle}
-.copy-key-btn:hover{opacity:1;background:rgba(0,122,255,0.2);transform:scale(1.1)}
 .time{color:var(--sub);font-size:12px}
 .status{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
 .s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
@@ -360,6 +367,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
             <option value="pro" selected>Pro (+지도검색)</option>
           </select>
           <select id="newDays">
+            <option value="1">1일</option>
+            <option value="3">3일</option>
             <option value="7">7일</option>
             <option value="14">14일</option>
             <option value="30" selected>30일</option>
@@ -393,6 +402,16 @@ tr:hover td{background:rgba(255,255,255,.015)}
             <tbody id="tLogs"></tbody>
           </table>
           <div class="empty-state" id="eLogs" style="display:none">조회 기록 없음</div>
+        </div>
+        <div class="section" style="margin-top:20px">
+          <div class="section-head">
+            <div class="section-title">공유 링크 생성 로그 <span class="badge badge-sub" id="shareLogCount">0건</span></div>
+          </div>
+          <table>
+            <thead><tr><th>라이선스 키</th><th>제안서명</th><th>중개사</th><th>공유 링크</th><th>생성 시간</th></tr></thead>
+            <tbody id="tShareLogs"></tbody>
+          </table>
+          <div class="empty-state" id="eShareLogs" style="display:none">공유 링크 생성 기록 없음</div>
         </div>
       </div>
 
@@ -521,30 +540,7 @@ var nameMap = {};
 function keyLabel(k) {
   if (!k) return "-";
   var name = nameMap[k];
-  var copyBtn = "<button class='copy-key-btn' onclick=\"event.stopPropagation();copyKey('" + k + "',this)\" title='키 복사'>&#x1F4CB;</button>";
-  return name
-    ? "<span style='color:var(--text);font-weight:600'>" + name + "</span> <span class='key' style='opacity:.6;font-size:11px'>" + k + "</span>" + copyBtn
-    : "<span class='key'>" + k + "</span>" + copyBtn;
-}
-function copyKey(k, btn) {
-  navigator.clipboard.writeText(k).then(function() {
-    var orig = btn.innerHTML;
-    btn.innerHTML = "&#x2705;";
-    btn.style.opacity = "1";
-    setTimeout(function(){ btn.innerHTML = orig; btn.style.opacity = ""; }, 1200);
-    showToast("복사됨: " + k);
-  }).catch(function() {
-    // fallback
-    var ta = document.createElement("textarea");
-    ta.value = k;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    showToast("복사됨: " + k);
-  });
+  return name ? "<span style='color:var(--text);font-weight:600'>" + name + "</span> <span class='key' style='opacity:.6;font-size:11px'>" + k + "</span>" : "<span class='key'>" + k + "</span>";
 }
 function shortKey(k) { return k || "-" }
 function shortHwid(h) { return h ? h.slice(0, 16) + "..." : "-" }
@@ -607,18 +603,13 @@ function setQuota(key) {
 document.getElementById("newDays").addEventListener("change", function(){
   document.getElementById("newDate").style.display = this.value === "custom" ? "" : "none";
 });
-function setTier(key, tier) {
-  var label = tier === 'pro' ? 'Pro (지도검색 포함)' : 'Basic (단일조회만)';
-  if (!confirm(key + " 를(을) " + label + " 로 변경할까요?")) return;
-  adminAction("set_tier", { license_key: key, tier: tier });
-}
 function createLicense() {
   var rawKey = document.getElementById("newKey").value.trim();
   if (!rawKey) { showToast("라이선스 키를 입력하세요", true); return; }
   var key = rawKey.startsWith("ARC-") ? rawKey : "ARC-" + rawKey;
   var officeName = document.getElementById("newOfficeName").value.trim();
-  var tier = document.getElementById("newTier").value || "pro";
   var sel = document.getElementById("newDays").value;
+  var tier = document.getElementById("newTier").value || "pro";
   var params = { license_key: key, quota: 100, office_name: officeName || null, tier: tier };
   if (sel === "custom") {
     var dateVal = document.getElementById("newDate").value;
@@ -636,6 +627,11 @@ function setOfficeName(key) {
   var name = prompt("부동산 이름을 입력하세요:", current);
   if (name === null) return;
   adminAction("set_name", { license_key: key, office_name: name });
+}
+function setTier(key, tier) {
+  var label = tier === 'pro' ? 'Pro (지도검색 포함)' : 'Basic (단일조회만)';
+  if (!confirm(key + " 를(을) " + label + " 로 변경할까요?")) return;
+  adminAction("set_tier", { license_key: key, tier: tier });
 }
 
 function createNotice() {
@@ -786,8 +782,8 @@ async function fetchData() {
       var k = l.license_key;
       var tier = l.tier || 'basic';
       var tierBadge = tier === 'pro'
-        ? "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(255,159,10,0.15);color:#ff9f0a;font-size:11px;font-weight:700;letter-spacing:0.3px;margin-left:6px'>PRO</span>"
-        : "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(90,100,120,0.2);color:#9aa3b2;font-size:11px;font-weight:700;letter-spacing:0.3px;margin-left:6px'>BASIC</span>";
+        ? "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(255,159,10,0.15);color:#ff9f0a;font-size:11px;font-weight:700;letter-spacing:0.3px'>PRO</span>"
+        : "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(90,100,120,0.2);color:#9aa3b2;font-size:11px;font-weight:700;letter-spacing:0.3px'>BASIC</span>";
       var btns = "<div class='act-btns'>";
       btns += "<button class='act-btn blue' onclick=\"extendLicense('"+k+"')\">연장</button>";
       btns += "<button class='act-btn orange' onclick=\"setQuota('"+k+"')\">쿼터</button>";
@@ -802,7 +798,7 @@ async function fetchData() {
       var used = d.todayPerUser[k] ? d.todayPerUser[k].count : 0;
       var quota = l.quota_daily || "무제한";
       var quotaText = "<strong>" + used + "</strong> / " + quota;
-      return "<tr><td>" + statusHtml + "</td><td>" + keyLabel(k) + tierBadge + "</td><td class='time'>" + fmtDate(l.expires_at) + "</td><td>" + quotaText + "</td><td>" + btns + "</td></tr>";
+      return "<tr><td>" + statusHtml + "</td><td>" + keyLabel(k) + " " + tierBadge + "</td><td class='time'>" + fmtDate(l.expires_at) + "</td><td>" + quotaText + "</td><td>" + btns + "</td></tr>";
     }).join("");
 
     // Recent logs
@@ -814,6 +810,20 @@ async function fetchData() {
       document.getElementById("tLogs").innerHTML = d.recentLogs.map(function(l) {
         return "<tr><td>" + keyLabel(l.license_key) + "</td><td>" + (l.article_no || "-") + "</td><td class='time'>" + fmtTime(l.queried_at) + "</td></tr>";
       }).join("");
+    }
+
+    // Share logs
+    if (d.shareLogs && d.shareLogs.length > 0) {
+      document.getElementById("eShareLogs").style.display = "none";
+      document.getElementById("shareLogCount").textContent = d.shareLogs.length + "건";
+      document.getElementById("tShareLogs").innerHTML = d.shareLogs.map(function(s) {
+        var link = s.share_url ? "<a href='" + s.share_url + "' target='_blank' style='color:var(--blue);text-decoration:none'>열기</a>" : "-";
+        return "<tr><td>" + keyLabel(s.license_key) + "</td><td>" + (s.proposal_name || "-") + "</td><td>" + (s.broker_name || "-") + "</td><td>" + link + "</td><td class='time'>" + fmtTime(s.created_at) + "</td></tr>";
+      }).join("");
+    } else {
+      document.getElementById("tShareLogs").innerHTML = "";
+      document.getElementById("eShareLogs").style.display = "";
+      document.getElementById("shareLogCount").textContent = "0건";
     }
 
     // Notices
