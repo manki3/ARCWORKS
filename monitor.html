@@ -825,7 +825,11 @@ async function fetchData() {
     if (d.shareLogs && d.shareLogs.length > 0) {
       document.getElementById("eRealtors").style.display = "none";
       var grouped = {};
+      var seenUrls = {};
       d.shareLogs.forEach(function(s) {
+        var url = s.share_url || '';
+        if (seenUrls[url]) return;
+        seenUrls[url] = true;
         var key = s.license_key || 'unknown';
         if (!grouped[key]) grouped[key] = { broker: s.broker_name || '', links: [] };
         if (!grouped[key].broker && s.broker_name) grouped[key].broker = s.broker_name;
