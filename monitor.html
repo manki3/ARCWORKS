@@ -268,6 +268,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       공지사항 관리
     </div>
+    <div class="nav-item" data-nav="realtors">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      부동산
+    </div>
     <div class="nav-item" data-nav="versions">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6l3-3"/><path d="M12 2v6l-3-3"/><path d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
       업데이트 이력
@@ -403,16 +407,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
           </table>
           <div class="empty-state" id="eLogs" style="display:none">조회 기록 없음</div>
         </div>
-        <div class="section" style="margin-top:20px">
-          <div class="section-head">
-            <div class="section-title">공유 링크 생성 로그 <span class="badge badge-sub" id="shareLogCount">0건</span></div>
-          </div>
-          <table>
-            <thead><tr><th>라이선스 키</th><th>제안서명</th><th>중개사</th><th>공유 링크</th><th>생성 시간</th></tr></thead>
-            <tbody id="tShareLogs"></tbody>
-          </table>
-          <div class="empty-state" id="eShareLogs" style="display:none">공유 링크 생성 기록 없음</div>
-        </div>
       </div>
 
       <!-- PAGE: Versions -->
@@ -435,6 +429,16 @@ tr:hover td{background:rgba(255,255,255,.015)}
       </div>
 
       <!-- PAGE: Notices -->
+      <div id="pageRealtors" style="display:none">
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">부동산별 공유 링크</div>
+          </div>
+          <div id="realtorList"></div>
+          <div class="empty-state" id="eRealtors" style="display:none">공유 링크가 없습니다</div>
+        </div>
+      </div>
+
       <div id="pageNotices" style="display:none">
         <div class="section">
           <div class="section-head">
@@ -469,6 +473,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span>공지</span>
     </div>
+    <div class="mobile-nav-item" data-nav="realtors">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>부동산</span>
+    </div>
     <div class="mobile-nav-item" data-nav="versions">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6l3-3"/><path d="M12 2v6l-3-3"/><circle cx="12" cy="14" r="8"/></svg>
       <span>버전</span>
@@ -493,9 +501,10 @@ function navigateTo(page){
   document.getElementById('pageDashboard').style.display = page === 'dashboard' ? '' : 'none';
   document.getElementById('pageLicenses').style.display = page === 'licenses' ? '' : 'none';
   document.getElementById('pageLogs').style.display = page === 'logs' ? '' : 'none';
+  document.getElementById('pageRealtors').style.display = page === 'realtors' ? '' : 'none';
   document.getElementById('pageNotices').style.display = page === 'notices' ? '' : 'none';
   document.getElementById('pageVersions').style.display = page === 'versions' ? '' : 'none';
-  var titles = { dashboard: '대시보드', licenses: '라이선스 관리', logs: '조회 로그', notices: '공지사항 관리', versions: '업데이트 이력' };
+  var titles = { dashboard: '대시보드', licenses: '라이선스 관리', logs: '조회 로그', realtors: '부동산', notices: '공지사항 관리', versions: '업데이트 이력' };
   document.getElementById('pageTitle').textContent = titles[page] || '';
   window.scrollTo(0,0);
 }
@@ -812,18 +821,36 @@ async function fetchData() {
       }).join("");
     }
 
-    // Share logs
+    // 부동산별 공유 링크
     if (d.shareLogs && d.shareLogs.length > 0) {
-      document.getElementById("eShareLogs").style.display = "none";
-      document.getElementById("shareLogCount").textContent = d.shareLogs.length + "건";
-      document.getElementById("tShareLogs").innerHTML = d.shareLogs.map(function(s) {
-        var link = s.share_url ? "<a href='" + s.share_url + "' target='_blank' style='color:var(--blue);text-decoration:none'>열기</a>" : "-";
-        return "<tr><td>" + keyLabel(s.license_key) + "</td><td>" + (s.proposal_name || "-") + "</td><td>" + (s.broker_name || "-") + "</td><td>" + link + "</td><td class='time'>" + fmtTime(s.created_at) + "</td></tr>";
-      }).join("");
+      document.getElementById("eRealtors").style.display = "none";
+      var grouped = {};
+      d.shareLogs.forEach(function(s) {
+        var key = s.license_key || 'unknown';
+        if (!grouped[key]) grouped[key] = { broker: s.broker_name || '', links: [] };
+        if (!grouped[key].broker && s.broker_name) grouped[key].broker = s.broker_name;
+        grouped[key].links.push(s);
+      });
+      var html = '';
+      Object.keys(grouped).forEach(function(key) {
+        var g = grouped[key];
+        html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px">';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><div style="font-size:14px;font-weight:600">' + keyLabel(key) + '</div>';
+        if (g.broker) html += '<span style="font-size:12px;color:var(--sub);background:var(--card2);padding:2px 8px;border-radius:4px">' + g.broker + '</span>';
+        html += '<span style="font-size:12px;color:var(--sub);margin-left:auto">' + g.links.length + '개 링크</span></div>';
+        g.links.forEach(function(s) {
+          var url = s.share_url || '';
+          html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:13px">';
+          html += '<span style="color:var(--sub);flex-shrink:0">' + (s.proposal_name || '-') + '</span>';
+          html += '<a href="' + url + '" target="_blank" style="color:var(--blue);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + url + '</a>';
+          html += '</div>';
+        });
+        html += '</div>';
+      });
+      document.getElementById("realtorList").innerHTML = html;
     } else {
-      document.getElementById("tShareLogs").innerHTML = "";
-      document.getElementById("eShareLogs").style.display = "";
-      document.getElementById("shareLogCount").textContent = "0건";
+      document.getElementById("realtorList").innerHTML = "";
+      document.getElementById("eRealtors").style.display = "";
     }
 
     // Notices
