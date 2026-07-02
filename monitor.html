@@ -425,7 +425,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
             <span id="sfTotal" style="margin-left:auto;color:var(--sub);font-size:13px"></span>
           </div>
           <table>
-            <thead><tr><th style="width:180px">부동산</th><th style="width:160px">라이선스 키</th><th>매물번호</th><th style="width:160px">조회 시간</th></tr></thead>
+            <thead><tr><th style="width:140px">부동산</th><th style="width:120px">라이선스 키</th><th style="width:100px">매물번호</th><th>상세주소</th><th style="width:90px">동호수</th><th style="width:70px">유형</th><th style="width:150px">조회 시간</th></tr></thead>
             <tbody id="tLogs"></tbody>
           </table>
           <div class="empty-state" id="eLogs" style="display:none">조회 기록 없음</div>
@@ -778,7 +778,7 @@ function registerVersion() {
 // ── Log Search (부동산별 + 필터 + 페이징) ──
 var logsSearchInitialized = false;
 var logsCurrentPage = 1;
-var logsPageSize = 50;
+var logsPageSize = 300;
 var logsTotal = 0;
 var logsGroupMode = false;
 var logsLastRows = [];
@@ -824,10 +824,15 @@ function renderLogsTable(rows) {
   document.getElementById("eLogs").style.display = "none";
   document.getElementById("tLogs").innerHTML = rows.map(function(r) {
     var officeName = r.office_name || "-";
+    var addr = [r.building_name || r.jibun_address || "", r.detail_address || ""].filter(Boolean).join(" ") || "-";
+    var ho = r.hosu || "-";
     return "<tr>" +
       "<td>" + escapeHtml(officeName) + "</td>" +
       "<td>" + keyLabel(r.license_key) + "</td>" +
       "<td>" + escapeHtml(r.article_no || "-") + "</td>" +
+      "<td>" + escapeHtml(addr) + "</td>" +
+      "<td><strong>" + escapeHtml(ho) + "</strong></td>" +
+      "<td>" + escapeHtml(r.atcl_type || "-") + "</td>" +
       "<td class='time'>" + fmtTime(r.queried_at) + "</td>" +
     "</tr>";
   }).join("");
@@ -847,14 +852,27 @@ function renderOfficeStats(stats) {
     return;
   }
   document.getElementById("tOfficeStats").innerHTML = stats.map(function(s) {
-    return "<tr>" +
-      "<td>" + escapeHtml(s.office_name || "-") + "</td>" +
+    return "<tr style='cursor:pointer' onclick=\"drillIntoOffice('" + s.license_key + "')\" title='클릭 → 이 부동산이 검색한 매물(주소·동호수) 보기'>" +
+      "<td>" + escapeHtml(s.office_name || "-") + " <span style='color:var(--sub);font-size:11px'>›</span></td>" +
       "<td>" + keyLabel(s.license_key) + "</td>" +
       "<td><strong>" + s.count.toLocaleString() + "</strong></td>" +
       "<td class='time'>" + fmtTime(s.first) + "</td>" +
       "<td class='time'>" + fmtTime(s.last) + "</td>" +
     "</tr>";
   }).join("");
+}
+// 부동산별 통계 행 클릭 → 그 부동산이 검색한 매물 목록(주소·동호수, 최근 300) 보기
+function drillIntoOffice(key) {
+  document.getElementById("sfKey").value = key;
+  document.getElementById("sfOffice").value = "";
+  document.getElementById("sfArticle").value = "";
+  if (logsGroupMode) {
+    logsGroupMode = false;
+    document.getElementById("btnGroupToggle").textContent = "📊 부동산별 그룹 보기";
+    document.getElementById("officeStatsWrap").style.display = "none";
+  }
+  searchLogs(1);
+  try { document.getElementById("pageLogs").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
 }
 function toggleLogsGroup() {
   logsGroupMode = !logsGroupMode;
@@ -872,15 +890,20 @@ function resetLogsFilter() {
 }
 function downloadLogsCsv() {
   if (!logsLastRows.length) { showToast("다운로드할 데이터가 없습니다", true); return; }
-  var header = "부동산,라이선스키,매물번호,조회시각\n";
+  var header = "부동산,라이선스키,매물번호,상세주소,동호수,유형,조회시각\n";
   var rows = logsLastRows.map(function(r) {
+    var addr = [r.building_name || r.jibun_address || "", r.detail_address || ""].filter(Boolean).join(" ");
     return [
       '"' + (r.office_name || "").replace(/"/g, '""') + '"',
       '"' + (r.license_key || "").replace(/"/g, '""') + '"',
       '"' + (r.article_no || "").replace(/"/g, '""') + '"',
+      '"' + addr.replace(/"/g, '""') + '"',
+      '"' + (r.hosu || "").replace(/"/g, '""') + '"',
+      '"' + (r.atcl_type || "").replace(/"/g, '""') + '"',
       '"' + (r.queried_at || "") + '"',
     ].join(",");
   }).join("\n");
+  // UTF-8 BOM 추가 (엑셀 호환)
   var blob = new Blob(["﻿" + header + rows], { type: "text/csv;charset=utf-8" });
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
