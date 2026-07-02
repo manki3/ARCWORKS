@@ -16,18 +16,20 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 :root{
-  --bg:#050508;--bg2:#0c0c12;--card:#111118;--card2:#16161f;--card3:#1a1a24;
-  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);
-  --text:#f0f0f5;--sub:#6b6b80;--sub2:#4a4a5c;
-  --blue:#3b82f6;--blue2:#2563eb;--blue-bg:rgba(59,130,246,.08);--blue-border:rgba(59,130,246,.2);
-  --green:#22c55e;--green-bg:rgba(34,197,94,.08);--green-border:rgba(34,197,94,.2);
-  --red:#ef4444;--red-bg:rgba(239,68,68,.08);--red-border:rgba(239,68,68,.2);
-  --orange:#f59e0b;--orange-bg:rgba(245,158,11,.08);--orange-border:rgba(245,158,11,.2);
-  --purple:#a855f7;
-  --radius:12px;--radius-lg:16px;--radius-sm:8px;
+  /* 라이트 애플 톤 (화이트 & 블랙) */
+  --bg:#f5f5f7;--bg2:#fbfbfd;--card:#ffffff;--card2:#f5f5f7;--card3:#ececf0;
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.14);
+  --text:#1d1d1f;--sub:#6e6e73;--sub2:#a1a1a6;
+  --blue:#0071e3;--blue2:#0058b8;--blue-bg:rgba(0,113,227,.08);--blue-border:rgba(0,113,227,.22);
+  --green:#34c759;--green-bg:rgba(52,199,89,.10);--green-border:rgba(52,199,89,.30);
+  --red:#ff3b30;--red-bg:rgba(255,59,48,.09);--red-border:rgba(255,59,48,.26);
+  --orange:#ff9500;--orange-bg:rgba(255,149,0,.11);--orange-border:rgba(255,149,0,.30);
+  --purple:#af52de;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.05);
+  --radius:12px;--radius-lg:18px;--radius-sm:8px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Segoe UI','Inter',sans-serif;letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--sub2);border-radius:3px}
@@ -54,7 +56,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'S
 .sidebar-logo-text{font-size:15px;font-weight:700;letter-spacing:-.02em}
 .sidebar-logo-badge{font-size:10px;color:var(--sub);font-weight:500;margin-left:-4px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;transition:all .15s;border-left:2px solid transparent;margin-bottom:2px}
-.nav-item:hover{color:var(--text);background:rgba(255,255,255,.02)}
+.nav-item:hover{color:var(--text);background:rgba(0,0,0,.04)}
 .nav-item.active{color:var(--text);background:rgba(59,130,246,.06);border-left-color:var(--blue)}
 .nav-item svg{width:16px;height:16px;opacity:.5;flex-shrink:0}
 .nav-item.active svg{opacity:1}
@@ -76,7 +78,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'S
 
 /* ── Stat Cards ── */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;position:relative;overflow:hidden;box-shadow:var(--shadow);transition:box-shadow .2s,transform .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 2px 6px rgba(0,0,0,.07),0 14px 34px rgba(0,0,0,.08)}
 .stat-card:hover{border-color:var(--border2)}
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
 .stat-card.c-blue::before{background:var(--blue)}
@@ -112,7 +115,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'S
 .alert-detail{color:var(--sub);font-size:12px;margin-top:1px}
 
 /* ── Sections / Tables ── */
-.section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;transition:border-color .2s}
+.section{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
 .section:hover{border-color:var(--border2)}
 .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .section-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;letter-spacing:-.01em}
@@ -120,11 +123,11 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,'S
 .badge-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
 .badge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
 .badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
-.badge-sub{background:rgba(255,255,255,.04);color:var(--sub);border:1px solid var(--border)}
+.badge-sub{background:rgba(0,0,0,.05);color:var(--sub);border:1px solid var(--border)}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:11px;color:var(--sub2);font-weight:600;padding:8px 14px;border-bottom:1px solid var(--border);letter-spacing:.04em;text-transform:uppercase}
 td{font-size:13px;padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
-tr:hover td{background:rgba(255,255,255,.015)}
+tr:hover td{background:rgba(0,0,0,.022)}
 .key{font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:var(--orange);font-weight:500}
 .time{color:var(--sub);font-size:12px}
 .status{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
@@ -137,7 +140,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 /* ── Action Buttons ── */
 .act-btns{display:flex;gap:5px;flex-wrap:wrap}
 .act-btn{background:transparent;border:1px solid var(--border2);color:var(--sub);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s;font-family:inherit}
-.act-btn:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.act-btn:hover{background:rgba(0,0,0,.05);color:var(--text)}
 .act-btn.blue{color:var(--blue);border-color:var(--blue-border)}
 .act-btn.blue:hover{background:var(--blue-bg)}
 .act-btn.green{color:var(--green);border-color:var(--green-border)}
@@ -173,7 +176,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .notice-card-title{font-size:15px;font-weight:700;letter-spacing:-.01em}
 .notice-card-status{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px}
 .notice-card-status.on{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
-.notice-card-status.off{background:rgba(255,255,255,.04);color:var(--sub);border:1px solid var(--border)}
+.notice-card-status.off{background:rgba(0,0,0,.05);color:var(--sub);border:1px solid var(--border)}
 .notice-card-body{font-size:13px;color:var(--sub);line-height:1.6;white-space:pre-wrap;margin-bottom:10px}
 .notice-card-footer{display:flex;align-items:center;justify-content:space-between}
 .notice-card-time{font-size:11px;color:var(--sub2)}
