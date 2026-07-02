@@ -1075,7 +1075,9 @@ async function fetchData() {
       return "<tr><td>" + statusHtml + "</td><td>" + keyLabel(k) + " " + tierBadge + "</td><td class='time'>" + fmtDate(l.expires_at) + "</td><td>" + quotaText + "</td><td>" + btns + "</td></tr>";
     }).join("");
 
-    // Recent logs
+    // Recent logs (초기 프리필 전용) — 사용자가 조회로그를 검색/드릴인한 뒤에는
+    //   tLogs를 덮지 않는다. (자동 새로고침이 필터된 결과를 전체 최근30건으로 밀어버리는 버그 방지)
+    if (!logsSearchInitialized) {
     if (d.recentLogs.length === 0) {
       document.getElementById("tLogs").innerHTML = "";
       document.getElementById("eLogs").style.display = "";
@@ -1096,6 +1098,7 @@ async function fetchData() {
           "<td class='time'>" + fmtTime(l.queried_at) + "</td>" +
         "</tr>";
       }).join("");
+    }
     }
 
     // 부동산별 공유 링크
