@@ -1039,7 +1039,17 @@ async function fetchData() {
     } else {
       document.getElementById("eLogs").style.display = "none";
       document.getElementById("tLogs").innerHTML = d.recentLogs.map(function(l) {
-        return "<tr><td>" + keyLabel(l.license_key) + "</td><td>" + (l.article_no || "-") + "</td><td class='time'>" + fmtTime(l.queried_at) + "</td></tr>";
+        var oName = nameMap[l.license_key] || "-";
+        var addr = [l.building_name || l.jibun_address || "", l.detail_address || ""].filter(Boolean).join(" ") || "-";
+        return "<tr>" +
+          "<td>" + escapeHtml(oName) + "</td>" +
+          "<td>" + keyLabel(l.license_key) + "</td>" +
+          "<td>" + escapeHtml(l.article_no || "-") + "</td>" +
+          "<td>" + escapeHtml(addr) + "</td>" +
+          "<td><strong>" + escapeHtml(l.hosu || "-") + "</strong></td>" +
+          "<td>" + escapeHtml(l.atcl_type || "-") + "</td>" +
+          "<td class='time'>" + fmtTime(l.queried_at) + "</td>" +
+        "</tr>";
       }).join("");
     }
 
