@@ -427,8 +427,9 @@ tr:hover td{background:rgba(0,0,0,.022)}
             <button class="act-btn" onclick="resetLogsFilter()">초기화</button>
             <span id="sfTotal" style="margin-left:auto;color:var(--sub);font-size:13px"></span>
           </div>
+          <div id="logsAnalytics" style="display:none;margin-bottom:18px"></div>
           <table>
-            <thead><tr><th style="width:140px">부동산</th><th style="width:120px">라이선스 키</th><th style="width:100px">매물번호</th><th>상세주소</th><th style="width:90px">동호수</th><th style="width:70px">유형</th><th style="width:150px">조회 시간</th></tr></thead>
+            <thead><tr><th style="width:130px">부동산</th><th style="width:110px">라이선스 키</th><th style="width:95px">매물번호</th><th>상세주소</th><th style="width:78px">동호수</th><th style="width:64px">유형</th><th style="width:56px">거래</th><th style="width:100px">금액</th><th style="width:140px">조회 시간</th></tr></thead>
             <tbody id="tLogs"></tbody>
           </table>
           <div class="empty-state" id="eLogs" style="display:none">조회 기록 없음</div>
@@ -822,6 +823,7 @@ function renderLogsTable(rows) {
   if (!rows.length) {
     document.getElementById("tLogs").innerHTML = "";
     document.getElementById("eLogs").style.display = "";
+    renderLogsAnalytics([]);
     return;
   }
   document.getElementById("eLogs").style.display = "none";
@@ -836,9 +838,45 @@ function renderLogsTable(rows) {
       "<td>" + escapeHtml(addr) + "</td>" +
       "<td><strong>" + escapeHtml(ho) + "</strong></td>" +
       "<td>" + escapeHtml(r.atcl_type || "-") + "</td>" +
+      "<td>" + escapeHtml(tradeLabel(r.trade_type)) + "</td>" +
+      "<td>" + escapeHtml(priceLabel(r.price, r.rent_price)) + "</td>" +
       "<td class='time'>" + fmtTime(r.queried_at) + "</td>" +
     "</tr>";
   }).join("");
+  renderLogsAnalytics(rows);
+}
+// 거래유형 코드→한글, 금액 표기 헬퍼
+function tradeLabel(t){ var m={A1:"매매",B1:"전세",B2:"월세",B3:"단기"}; return (m[t]||t||"-"); }
+function priceLabel(p, rp){ p=p||""; rp=rp||""; if(!p&&!rp) return "-"; return p + (rp ? "/"+rp : ""); }
+function extractGu(addr){ if(!addr) return ""; var t=String(addr).split(/\s+/); for(var i=0;i<t.length;i++){ if(/[구군]$/.test(t[i])) return t[i]; } return t[1]||t[0]||""; }
+// 비율 블록 (라벨별 % 막대)
+function pctBlock(title, counts, total){
+  var entries=Object.keys(counts).map(function(k){return [k,counts[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,6);
+  if(!entries.length) return "";
+  var rows=entries.map(function(e){
+    var pct=total?Math.round(e[1]/total*100):0;
+    return "<div style='margin-bottom:8px'>"+
+      "<div style='display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px'><span>"+escapeHtml(e[0])+"</span><span style='color:var(--sub)'>"+pct+"% ("+e[1]+")</span></div>"+
+      "<div style='height:6px;background:var(--card2);border-radius:4px;overflow:hidden'><div style='height:100%;width:"+pct+"%;background:var(--blue);border-radius:4px'></div></div>"+
+    "</div>";
+  }).join("");
+  return "<div><div style='font-size:12px;font-weight:700;color:var(--sub);margin-bottom:10px;letter-spacing:.03em'>"+title+"</div>"+rows+"</div>";
+}
+// 검색 성향 분석 — 현재 조회된 rows 기준 거래유형·매물유형·지역(구) 비율
+function renderLogsAnalytics(rows){
+  var box=document.getElementById("logsAnalytics"); if(!box) return;
+  if(!rows || !rows.length){ box.style.display="none"; box.innerHTML=""; return; }
+  var n=rows.length, trade={}, type={}, gu={};
+  rows.forEach(function(r){
+    var t=tradeLabel(r.trade_type); if(t&&t!=="-") trade[t]=(trade[t]||0)+1;
+    var ty=r.atcl_type||""; if(ty) type[ty]=(type[ty]||0)+1;
+    var g=extractGu(r.jibun_address); if(g) gu[g]=(gu[g]||0)+1;
+  });
+  box.style.display="";
+  box.innerHTML="<div class='section-title' style='margin-bottom:14px'>검색 성향 분석 <span class='badge badge-sub'>현재 "+n.toLocaleString()+"건 기준</span></div>"+
+    "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px'>"+
+      pctBlock("거래유형", trade, n)+pctBlock("매물유형", type, n)+pctBlock("지역 (구)", gu, n)+
+    "</div>";
 }
 function renderLogsPager() {
   var totalPages = Math.max(1, Math.ceil(logsTotal / logsPageSize));
@@ -893,7 +931,7 @@ function resetLogsFilter() {
 }
 function downloadLogsCsv() {
   if (!logsLastRows.length) { showToast("다운로드할 데이터가 없습니다", true); return; }
-  var header = "부동산,라이선스키,매물번호,상세주소,동호수,유형,조회시각\n";
+  var header = "부동산,라이선스키,매물번호,상세주소,동호수,유형,거래유형,금액,조회시각\n";
   var rows = logsLastRows.map(function(r) {
     var addr = [r.building_name || r.jibun_address || "", r.detail_address || ""].filter(Boolean).join(" ");
     return [
@@ -903,6 +941,8 @@ function downloadLogsCsv() {
       '"' + addr.replace(/"/g, '""') + '"',
       '"' + (r.hosu || "").replace(/"/g, '""') + '"',
       '"' + (r.atcl_type || "").replace(/"/g, '""') + '"',
+      '"' + tradeLabel(r.trade_type).replace(/"/g, '""') + '"',
+      '"' + priceLabel(r.price, r.rent_price).replace(/"/g, '""') + '"',
       '"' + (r.queried_at || "") + '"',
     ].join(",");
   }).join("\n");
@@ -1048,6 +1088,8 @@ async function fetchData() {
           "<td>" + escapeHtml(addr) + "</td>" +
           "<td><strong>" + escapeHtml(l.hosu || "-") + "</strong></td>" +
           "<td>" + escapeHtml(l.atcl_type || "-") + "</td>" +
+          "<td>" + escapeHtml(tradeLabel(l.trade_type)) + "</td>" +
+          "<td>" + escapeHtml(priceLabel(l.price, l.rent_price)) + "</td>" +
           "<td class='time'>" + fmtTime(l.queried_at) + "</td>" +
         "</tr>";
       }).join("");
