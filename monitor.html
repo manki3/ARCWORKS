@@ -904,6 +904,9 @@ function renderOfficeStats(stats) {
 }
 // 부동산별 통계 행 클릭 → 그 부동산이 검색한 매물 목록(주소·동호수, 최근 300) 보기
 function drillIntoOffice(key) {
+  // 어느 페이지(대시보드·라이선스 관리 등)에서 눌러도 조회로그 페이지로 이동
+  try { navigateTo("logs"); } catch (e) {}
+  logsSearchInitialized = true;
   document.getElementById("sfKey").value = key;
   document.getElementById("sfOffice").value = "";
   document.getElementById("sfArticle").value = "";
@@ -913,7 +916,6 @@ function drillIntoOffice(key) {
     document.getElementById("officeStatsWrap").style.display = "none";
   }
   searchLogs(1);
-  try { document.getElementById("pageLogs").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
 }
 function toggleLogsGroup() {
   logsGroupMode = !logsGroupMode;
@@ -1028,7 +1030,7 @@ async function fetchData() {
       document.getElementById("eUsers").style.display = "none";
       document.getElementById("tUsers").innerHTML = uKeys.map(function(k) {
         var u = d.todayPerUser[k];
-        return "<tr><td>" + keyLabel(k) + "</td><td><strong>" + u.count + "</strong> 건</td><td class='time'>" + fmtTime(u.first) + "</td><td class='time'>" + fmtTime(u.last) + "</td></tr>";
+        return "<tr style='cursor:pointer' onclick=\"drillIntoOffice('" + k + "')\" title='클릭 → 이 라이선스 검색내역·비율 보기'><td>" + keyLabel(k) + " <span style='color:var(--sub);font-size:11px'>›</span></td><td><strong>" + u.count + "</strong> 건</td><td class='time'>" + fmtTime(u.first) + "</td><td class='time'>" + fmtTime(u.last) + "</td></tr>";
       }).join("");
     }
 
@@ -1056,6 +1058,7 @@ async function fetchData() {
         ? "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(255,159,10,0.15);color:#ff9f0a;font-size:11px;font-weight:700;letter-spacing:0.3px'>PRO</span>"
         : "<span style='display:inline-block;padding:2px 8px;border-radius:10px;background:rgba(90,100,120,0.2);color:#9aa3b2;font-size:11px;font-weight:700;letter-spacing:0.3px'>BASIC</span>";
       var btns = "<div class='act-btns'>";
+      btns += "<button class='act-btn' onclick=\"drillIntoOffice('"+k+"')\">📋 검색내역</button>";
       btns += "<button class='act-btn blue' onclick=\"extendLicense('"+k+"')\">연장</button>";
       btns += "<button class='act-btn orange' onclick=\"setQuota('"+k+"')\">쿼터</button>";
       if (tier === 'pro') btns += "<button class='act-btn' onclick=\"setTier('"+k+"','basic')\">→Basic</button>";
