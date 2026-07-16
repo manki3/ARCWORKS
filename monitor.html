@@ -287,6 +287,10 @@ tr:hover td{background:rgba(0,0,0,.022)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       청구서 링크
     </div>
+    <div class="nav-item" data-nav="security">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      보안 모니터링
+    </div>
 
     <div class="nav-divider"></div>
 
@@ -513,6 +517,42 @@ tr:hover td{background:rgba(0,0,0,.022)}
         </div>
       </div>
 
+      <!-- PAGE: Security -->
+      <div id="pageSecurity" style="display:none">
+        <div class="section">
+          <div class="section-head"><div class="section-title">24시간 이상징후 요약</div></div>
+          <table>
+            <thead><tr><th>유형</th><th>건수</th><th>IP수</th><th>라이선스수</th><th>최근</th></tr></thead>
+            <tbody id="tSecSummary"></tbody>
+          </table>
+          <div class="empty-state" id="eSecSummary" style="display:none">최근 24시간 이상징후 없음 ✓</div>
+        </div>
+        <div class="section" style="margin-top:16px">
+          <div class="section-head"><div class="section-title">🚨 라이선스 도용/공유 의심 <span class="badge badge-sub">HWID 불일치</span></div></div>
+          <table>
+            <thead><tr><th>라이선스</th><th>시도</th><th>기기수</th><th>IP수</th><th>최근</th><th>관리</th></tr></thead>
+            <tbody id="tSecTheft"></tbody>
+          </table>
+          <div class="empty-state" id="eSecTheft" style="display:none">도용 시도 없음 ✓</div>
+        </div>
+        <div class="section" style="margin-top:16px">
+          <div class="section-head"><div class="section-title">🔨 활성화 brute force 의심 IP <span class="badge badge-sub">5회+ 실패</span></div></div>
+          <table>
+            <thead><tr><th>IP</th><th>실패</th><th>기기수</th><th>최근</th></tr></thead>
+            <tbody id="tSecBrute"></tbody>
+          </table>
+          <div class="empty-state" id="eSecBrute" style="display:none">brute force 없음 ✓</div>
+        </div>
+        <div class="section" style="margin-top:16px">
+          <div class="section-head"><div class="section-title">📋 최근 이상징후 <span class="badge badge-sub">최신 100건</span></div></div>
+          <table>
+            <thead><tr><th>시각</th><th>유형</th><th>라이선스</th><th>IP</th><th>상세</th></tr></thead>
+            <tbody id="tSecRecent"></tbody>
+          </table>
+          <div class="empty-state" id="eSecRecent" style="display:none">이상징후 없음 ✓</div>
+        </div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -577,7 +617,9 @@ function navigateTo(page){
   document.getElementById('pageVersions').style.display = page === 'versions' ? '' : 'none';
   document.getElementById('pageCalendar').style.display = page === 'calendar' ? '' : 'none';
   document.getElementById('pageInvoices').style.display = page === 'invoices' ? '' : 'none';
-  var titles = { dashboard: '대시보드', licenses: '라이선스 관리', logs: '조회 로그', realtors: '부동산', notices: '공지사항 관리', versions: '업데이트 이력', calendar: '캘린더 일정', invoices: '청구서 링크' };
+  document.getElementById('pageSecurity').style.display = page === 'security' ? '' : 'none';
+  if (page === 'security') loadSecurity();
+  var titles = { dashboard: '대시보드', licenses: '라이선스 관리', logs: '조회 로그', realtors: '부동산', notices: '공지사항 관리', versions: '업데이트 이력', calendar: '캘린더 일정', invoices: '청구서 링크', security: '보안 모니터링' };
   document.getElementById('pageTitle').textContent = titles[page] || '';
   window.scrollTo(0,0);
 }
@@ -659,6 +701,41 @@ async function adminAction(action, data) {
     if (d.ok) { showToast("완료: " + action); fetchData(); }
     else showToast("실패: " + (d.error || ""), true);
   } catch(e) { showToast("오류: " + e, true); }
+}
+
+// ── 보안 모니터링 ──
+function secCodeLabel(c) {
+  var m = { HWID_MISMATCH:"🚨 기기도용", VERSION_BLOCKED:"⛔ 구버전/크랙", REPLAY_NONCE:"🔁 재생공격", SESSION_INVALID:"❓ 세션이상", RATE_LIMITED:"⏱️ 속도초과", QUOTA_EXCEEDED:"📊 쿼터초과", FORBIDDEN:"🚫 권한없음", ACTIVATE_FAIL:"🔨 가짜키시도" };
+  return m[c] || c;
+}
+function renderSecTable(tbodyId, emptyId, rows, rowFn) {
+  var tb = document.getElementById(tbodyId), em = document.getElementById(emptyId);
+  if (!rows || !rows.length) { tb.innerHTML = ""; em.style.display = ""; return; }
+  em.style.display = "none";
+  tb.innerHTML = rows.map(function(r){ return "<tr>" + rowFn(r) + "</tr>"; }).join("");
+}
+async function loadSecurity() {
+  try {
+    var res = await fetch(SUPABASE_URL + "/functions/v1/monitor", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + ANON_KEY, "Content-Type": "application/json", "x-monitor-pass": PASS },
+      body: JSON.stringify({ action: "security" })
+    });
+    var d = await res.json();
+    if (!d.ok) { showToast("보안 데이터 로드 실패", true); return; }
+    renderSecTable("tSecSummary","eSecSummary", d.summary, function(r){
+      return "<td><b>"+secCodeLabel(r.code)+"</b></td><td>"+r.cnt+"</td><td>"+r.ips+"</td><td>"+r.licenses+"</td><td>"+fmtTime(r.last_at)+"</td>";
+    });
+    renderSecTable("tSecTheft","eSecTheft", d.theft, function(r){
+      return "<td>"+keyLabel(r.license_key)+"</td><td>"+r.attempts+"</td><td>"+r.distinct_hwids+"</td><td>"+r.distinct_ips+"</td><td>"+fmtTime(r.last_at)+"</td><td><button class='ctrl-btn' onclick=\"adminAction('suspend',{license_key:'"+r.license_key+"'})\">정지</button></td>";
+    });
+    renderSecTable("tSecBrute","eSecBrute", d.brute, function(r){
+      return "<td>"+(r.ip||'-')+"</td><td>"+r.fails+"</td><td>"+r.hwids+"</td><td>"+fmtTime(r.last_at)+"</td>";
+    });
+    renderSecTable("tSecRecent","eSecRecent", d.recent, function(r){
+      return "<td>"+fmtTime(r.created_at)+"</td><td>"+secCodeLabel(r.code)+"</td><td>"+shortKey(r.license_key)+"</td><td>"+(r.ip||'-')+"</td><td style='opacity:.7;font-size:11px'>"+(r.detail||'')+"</td>";
+    });
+  } catch(e) { showToast("보안 로드 오류: " + e, true); }
 }
 
 function extendLicense(key) {
