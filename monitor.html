@@ -291,6 +291,10 @@ tr:hover td{background:rgba(0,0,0,.022)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       보안 모니터링
     </div>
+    <div class="nav-item" data-nav="magok">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+      마곡원2 사용량
+    </div>
 
     <div class="nav-divider"></div>
 
@@ -553,6 +557,77 @@ tr:hover td{background:rgba(0,0,0,.022)}
         </div>
       </div>
 
+      <!-- PAGE: 마곡원2 사용량 -->
+      <div id="pageMagok" style="display:none">
+        <div class="stats">
+          <div class="stat-card c-purple">
+            <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+            <div class="stat-label">누적 사용액</div>
+            <div class="stat-val" id="mTotal">-</div>
+          </div>
+          <div class="stat-card c-blue">
+            <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div class="stat-label">이번 달</div>
+            <div class="stat-val" id="mMonth">-</div>
+          </div>
+          <div class="stat-card c-green">
+            <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg></div>
+            <div class="stat-label">오늘</div>
+            <div class="stat-val" id="mToday">-</div>
+          </div>
+          <div class="stat-card c-orange">
+            <div class="stat-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
+            <div class="stat-label">등록 기기 / 생성 건수</div>
+            <div class="stat-val" id="mDevices">-</div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head"><div class="section-title">직원별 사용량 <span class="badge badge-sub">누적</span></div></div>
+          <table>
+            <thead><tr><th>사용자</th><th>생성 건수</th><th>사용액</th></tr></thead>
+            <tbody id="tMagokUsers"></tbody>
+          </table>
+          <div class="empty-state" id="eMagokUsers" style="display:none">아직 사용 기록 없음</div>
+        </div>
+
+        <div class="section" style="margin-top:16px">
+          <div class="section-head"><div class="section-title">기능별 사용량 <span class="badge badge-sub">generate·vision·seo·blog</span></div></div>
+          <table>
+            <thead><tr><th>기능</th><th>호출 건수</th><th>사용액</th></tr></thead>
+            <tbody id="tMagokActions"></tbody>
+          </table>
+          <div class="empty-state" id="eMagokActions" style="display:none">아직 사용 기록 없음</div>
+        </div>
+
+        <div class="section" style="margin-top:16px">
+          <div class="section-head"><div class="section-title">일별 사용량 <span class="badge badge-sub">최근 30일</span></div></div>
+          <table>
+            <thead><tr><th>날짜</th><th>건수</th><th>사용액</th></tr></thead>
+            <tbody id="tMagokDays"></tbody>
+          </table>
+          <div class="empty-state" id="eMagokDays" style="display:none">아직 사용 기록 없음</div>
+        </div>
+
+        <div class="section" style="margin-top:16px">
+          <div class="section-head"><div class="section-title">등록 기기 <span class="badge badge-sub">최대 3대</span></div></div>
+          <table>
+            <thead><tr><th>사용자</th><th>등록일</th><th>기기 ID</th></tr></thead>
+            <tbody id="tMagokDevices"></tbody>
+          </table>
+          <div class="empty-state" id="eMagokDevices" style="display:none">등록된 기기 없음</div>
+        </div>
+
+        <div class="section" style="margin-top:16px">
+          <div class="section-head"><div class="section-title">최근 사용 <span class="badge badge-sub">최신 40건</span></div></div>
+          <table>
+            <thead><tr><th>시각</th><th>사용자</th><th>기능</th><th>모델</th><th>토큰(in/out)</th><th>비용</th></tr></thead>
+            <tbody id="tMagokRecent"></tbody>
+          </table>
+          <div class="empty-state" id="eMagokRecent" style="display:none">아직 사용 기록 없음</div>
+        </div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -618,8 +693,10 @@ function navigateTo(page){
   document.getElementById('pageCalendar').style.display = page === 'calendar' ? '' : 'none';
   document.getElementById('pageInvoices').style.display = page === 'invoices' ? '' : 'none';
   document.getElementById('pageSecurity').style.display = page === 'security' ? '' : 'none';
+  document.getElementById('pageMagok').style.display = page === 'magok' ? '' : 'none';
   if (page === 'security') loadSecurity();
-  var titles = { dashboard: '대시보드', licenses: '라이선스 관리', logs: '조회 로그', realtors: '부동산', notices: '공지사항 관리', versions: '업데이트 이력', calendar: '캘린더 일정', invoices: '청구서 링크', security: '보안 모니터링' };
+  if (page === 'magok') loadMagok();
+  var titles = { dashboard: '대시보드', licenses: '라이선스 관리', logs: '조회 로그', realtors: '부동산', notices: '공지사항 관리', versions: '업데이트 이력', calendar: '캘린더 일정', invoices: '청구서 링크', security: '보안 모니터링', magok: '마곡원2 사용량' };
   document.getElementById('pageTitle').textContent = titles[page] || '';
   window.scrollTo(0,0);
 }
@@ -736,6 +813,46 @@ async function loadSecurity() {
       return "<td>"+fmtTime(r.created_at)+"</td><td>"+secCodeLabel(r.code)+"</td><td>"+shortKey(r.license_key)+"</td><td>"+(r.ip||'-')+"</td><td style='opacity:.7;font-size:11px'>"+(r.detail||'')+"</td>";
     });
   } catch(e) { showToast("보안 로드 오류: " + e, true); }
+}
+
+// ── 마곡원2(M1) 사용량 ──
+// 환율(USD→KRW) 표시용 근사. 정확 청구는 Anthropic 콘솔 기준.
+var MAGOK_FX = 1400;
+function usd(n){ n = Number(n)||0; return "$" + n.toFixed(n < 1 ? 4 : 2); }
+function usdKrw(n){ n = Number(n)||0; return usd(n) + " <span style='opacity:.55;font-size:11px'>(₩" + Math.round(n*MAGOK_FX).toLocaleString() + ")</span>"; }
+function magokActionLabel(a){
+  var m = { generate:"글 생성", vision:"사진 분석", seo:"상위노출 분석", blog:"내 블로그 분석", auth:"인증" };
+  return m[a] || a;
+}
+async function loadMagok() {
+  try {
+    var res = await fetch(SUPABASE_URL + "/functions/v1/monitor", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + ANON_KEY, "Content-Type": "application/json", "x-monitor-pass": PASS },
+      body: JSON.stringify({ action: "magok_usage" })
+    });
+    var d = await res.json();
+    if (!d.ok) { showToast("마곡원2 사용량 로드 실패: " + (d.error||""), true); return; }
+    document.getElementById("mTotal").innerHTML = usdKrw(d.total);
+    document.getElementById("mMonth").innerHTML = usdKrw(d.monthCost);
+    document.getElementById("mToday").innerHTML = usdKrw(d.todayCost) + " <span style='opacity:.55;font-size:12px'>· " + (d.todayCount||0) + "건</span>";
+    document.getElementById("mDevices").innerHTML = (d.devices ? d.devices.length : 0) + " / 3 <span style='opacity:.55;font-size:12px'>· 총 " + (d.totalCount||0) + "건</span>";
+    renderSecTable("tMagokUsers","eMagokUsers", d.users, function(r){
+      return "<td><b>"+(r.name||'-')+"</b></td><td>"+r.count+"건</td><td>"+usdKrw(r.cost)+"</td>";
+    });
+    renderSecTable("tMagokActions","eMagokActions", d.actions, function(r){
+      return "<td>"+magokActionLabel(r.action)+"</td><td>"+r.count+"건</td><td>"+usdKrw(r.cost)+"</td>";
+    });
+    renderSecTable("tMagokDays","eMagokDays", d.days, function(r){
+      return "<td>"+r.day+"</td><td>"+r.count+"건</td><td>"+usdKrw(r.cost)+"</td>";
+    });
+    renderSecTable("tMagokDevices","eMagokDevices", d.devices, function(r){
+      return "<td><b>"+(r.name||'-')+"</b></td><td>"+fmtTime(r.created_at)+"</td><td style='opacity:.6;font-size:11px'>"+(r.hwid?r.hwid.slice(0,16)+"…":"-")+"</td>";
+    });
+    renderSecTable("tMagokRecent","eMagokRecent", d.recent, function(r){
+      return "<td>"+fmtTime(r.created_at)+"</td><td>"+(r.name||'-')+"</td><td>"+magokActionLabel(r.action)+"</td><td style='opacity:.7;font-size:11px'>"+(r.model||'-')+"</td><td style='opacity:.7;font-size:11px'>"+(r.input_tokens||0)+" / "+(r.output_tokens||0)+"</td><td>"+usd(r.cost_usd)+"</td>";
+    });
+  } catch(e) { showToast("마곡원2 로드 오류: " + e, true); }
 }
 
 function extendLicense(key) {
