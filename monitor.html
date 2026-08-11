@@ -915,6 +915,14 @@ function setTier(key, tier) {
   if (!confirm(key + " 를(을) " + label + " 로 변경할까요?")) return;
   adminAction("set_tier", { license_key: key, tier: tier });
 }
+function toggleBlockFocus(key, cur) {
+  var next = !cur;
+  var msg = next
+    ? key + " 를(을) 포커스부동산 매물 조회 차단 ON 으로 바꿀까요?\n(이 라이선스는 포커스부동산 매물이 '조회할 수 없는 매물입니다'로 뜹니다)"
+    : key + " 의 포커스부동산 차단을 OFF(해제)할까요?";
+  if (!confirm(msg)) return;
+  adminAction("set_block_focus", { license_key: key, block_focus: next });
+}
 
 function createNotice() {
   var title = document.getElementById("noticeTitle").value.trim();
@@ -1259,6 +1267,8 @@ async function fetchData() {
       else                btns += "<button class='act-btn green' onclick=\"setTier('"+k+"','pro')\">→Pro</button>";
       if (l.is_active) btns += "<button class='act-btn red' onclick=\"suspendLicense('"+k+"')\">정지</button>";
       else btns += "<button class='act-btn green' onclick=\"activateLicense('"+k+"')\">활성화</button>";
+      if (l.block_focus) btns += "<button class='act-btn red' onclick=\"toggleBlockFocus('"+k+"',true)\">🚫포커스차단ON</button>";
+      else               btns += "<button class='act-btn' onclick=\"toggleBlockFocus('"+k+"',false)\">포커스차단OFF</button>";
       btns += "<button class='act-btn' onclick=\"kickSession('"+k+"')\">세션끊기</button>";
       btns += "<button class='act-btn' onclick=\"setOfficeName('"+k+"')\">부동산</button>";
       btns += "<button class='act-btn red' onclick=\"deleteLicense('"+k+"')\">삭제</button>";
